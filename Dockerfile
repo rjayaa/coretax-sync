@@ -1,6 +1,4 @@
-# Dockerfile
 FROM node:20-alpine
-
 WORKDIR /app
 
 # Install dependencies first (caching layer)
@@ -16,6 +14,5 @@ RUN npm run build
 # Expose the port the app runs on
 EXPOSE 9988
 
-# Start the application
-CMD ["npm", "run", "dev"]
-
+# Gunakan start untuk production, bukan dev
+CMD ["npm", "run", "start"]
