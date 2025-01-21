@@ -48,3 +48,5 @@ export interface DetailItem {
   tarifPpnbm: string;        // Default 10%
   ppnbm: string;             // Harga Jual * tarif PPnBM
 }
+
+

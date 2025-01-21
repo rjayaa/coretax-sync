@@ -10,7 +10,7 @@ import DetailForm from "./detail-form";
 import PreviewXML from "./preview-xml";
 import PreviewExcel from "./preview-excel";
 import { generateXML } from "@/lib/utils/xml-generator";
-import { generateExcel } from "@/lib/utils/excel-generator";
+// import { generateExcel } from "@/lib/utils/excel-generator";
 import { DEFAULT_DETAIL_ITEM, TAB_LIST, TRANSACTION_TYPES } from "@/lib/constants/tax-invoice";
 import type { HeaderData, FakturData, DetailItem, TransactionType, } from "@/types/tax-invoice";
 
@@ -18,14 +18,14 @@ type TabType = typeof TAB_LIST[number];
 
 export default function TaxInvoiceForm() {
   const [activeTab, setActiveTab] = useState<TabType>("header");
-  const [xmlOutput, setXmlOutput] = useState("");
   const [error, setError] = useState("");
 
   // State untuk data faktur
-  const [headerData, setHeaderData] = useState<HeaderData>({
-    npwpPenjual: "",
-    jenisTransaksi: "FULL_PAYMENT"
-  });
+    // State untuk data faktur
+    const [headerData, setHeaderData] = useState<HeaderData>({
+      npwpPenjual: "",
+      jenisTransaksi: "FULL_PAYMENT"
+    });
 
   const [fakturData, setFakturData] = useState<FakturData>({
     tanggalFaktur: "",
@@ -51,7 +51,6 @@ export default function TaxInvoiceForm() {
 
   const [detailItems, setDetailItems] = useState<DetailItem[]>([DEFAULT_DETAIL_ITEM]);
 
-  // Handlers untuk navigasi
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
   };
@@ -172,34 +171,29 @@ export default function TaxInvoiceForm() {
     }
   };
 
-  const handleGenerateXML = () => {
+  
+  const handleSubmit = async () => {
     try {
-      const xml = generateXML({ headerData, fakturData, detailItems });
-      setXmlOutput(xml);
-      setError("");
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
+      const response = await fetch('/api/invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          headerData,
+          fakturData,
+          detailItems,
+        }),
+      });
 
-  const handleDownloadXML = () => {
-    if (!xmlOutput) return;
-    
-    const blob = new Blob([xmlOutput], { type: 'text/xml' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tax-invoice.xml';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
+      if (!response.ok) {
+        throw new Error('Failed to create invoice');
+      }
 
-  const handleGenerateExcel = () => {
-    try {
-      generateExcel({ fakturData, detailItems });
-      setError("");
+      const data = await response.json();
+      // Redirect ke list
+      window.location.href = '/';
+
     } catch (err) {
       setError((err as Error).message);
     }
@@ -215,11 +209,9 @@ export default function TaxInvoiceForm() {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as TabType)} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="header">Data Faktur</TabsTrigger>
             <TabsTrigger value="detail">Detail Barang/Jasa</TabsTrigger>
-            <TabsTrigger value="preview-xml">Preview XML</TabsTrigger>
-            <TabsTrigger value="preview-excel">Preview Excel</TabsTrigger>
           </TabsList>
 
           <TabsContent value="header">
@@ -235,33 +227,19 @@ export default function TaxInvoiceForm() {
             <DetailForm 
               items={detailItems}
               transactionType={headerData.jenisTransaksi}
-              referenceDP={fakturData.referensiInvoiceDP}
+              
               onItemChange={handleDetailChange}
               onAddItem={handleAddItem}
               onRemoveItem={handleRemoveItem}
             />
           </TabsContent>
-
-          <TabsContent value="preview-xml">
-            <PreviewXML 
-              headerData={headerData}
-              fakturData={fakturData}
-              detailItems={detailItems}
-              xmlOutput={xmlOutput}
-              error={error}
-              onGenerateXML={handleGenerateXML}
-              onDownloadXML={handleDownloadXML}
-            />
-          </TabsContent>
-
-          <TabsContent value="preview-excel">
-            <PreviewExcel 
-              fakturData={fakturData}
-              detailItems={detailItems}
-              onGenerateExcel={handleGenerateExcel}
-            />
-          </TabsContent>
         </Tabs>
+
+        {error && (
+          <div className="mt-4 p-4 text-sm text-red-800 bg-red-100 rounded-lg">
+            {error}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between pt-6">
         <Button
@@ -274,25 +252,13 @@ export default function TaxInvoiceForm() {
           Back
         </Button>
 
-        {activeTab === "preview-excel" ? (
-          <Button onClick={handleGenerateExcel} variant="default">
-            Download Excel
+        {activeTab === "detail" ? (
+          <Button onClick={handleSubmit} variant="default">
+            Save
           </Button>
-        ) : activeTab === "preview-xml" ? (
-          <div className="flex gap-2">
-            <Button onClick={handleGenerateXML} variant="secondary">
-              Generate XML
-            </Button>
-            {xmlOutput && (
-              <Button onClick={handleDownloadXML}>
-                Download XML
-              </Button>
-            )}
-          </div>
         ) : (
           <Button
             onClick={handleNext}
-            disabled={activeTab === "preview-excel"}
             className="w-[100px]"
           >
             Next

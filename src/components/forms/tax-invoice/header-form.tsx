@@ -1,6 +1,7 @@
 // src/components/forms/tax-invoice/header-form.tsx
 "use client";
 
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -13,19 +14,68 @@ import {
 import type { HeaderData, FakturData } from "@/types/tax-invoice";
 import { TRANSACTION_TYPES } from "@/lib/constants/tax-invoice";
 
+interface Customer {
+  id: string;
+  nama: string;
+  npwp: string;
+  jalan: string | null;
+  alamatLengkap: string;
+}
+
 interface HeaderFormProps {
   headerData: HeaderData;
   fakturData: FakturData;
   onHeaderChange: (field: keyof HeaderData, value: string) => void;
   onFakturChange: (field: keyof FakturData, value: string) => void;
 }
-
 export default function HeaderForm({
     headerData,
     fakturData,
     onHeaderChange,
     onFakturChange,
 }: HeaderFormProps) {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/customers');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.customers) {
+          console.log('Loaded customers:', data.customers.length);
+          setCustomers(data.customers);
+        } else {
+          console.warn('No customers data in response:', data);
+        }
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load customers');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
+  const handleCustomerChange = (customerId: string) => {
+    const selectedCustomer = customers.find(c => c.id === customerId);
+    if (selectedCustomer) {
+      onFakturChange('npwpPembeli', selectedCustomer.npwp);
+      onFakturChange('namaPembeli', selectedCustomer.nama);
+      onFakturChange('alamatPembeli', selectedCustomer.alamatLengkap);
+    }
+  };
+
     return (
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -55,7 +105,51 @@ export default function HeaderForm({
               </SelectContent>
             </Select>
           </div>
-    
+
+          <div>
+            <Label>Pilih Customer</Label>
+            <Select
+              onValueChange={handleCustomerChange}
+              disabled={isLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isLoading ? "Loading..." : "Pilih Customer"} />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.nama} 
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>NPWP Pembeli</Label>
+            <Input 
+              value={fakturData.npwpPembeli}
+              readOnly
+              className="bg-gray-50"
+            />
+          </div>
+
+          <div>
+            <Label>Nama Pembeli</Label>
+            <Input 
+              value={fakturData.namaPembeli}
+              readOnly
+              className="bg-gray-50"
+            />
+          </div>
+
+          <div>
+            <Label>Alamat Pembeli</Label>
+            <Input 
+              value={fakturData.alamatPembeli}
+              readOnly
+              className="bg-gray-50"
+            />
+          </div>
           {headerData.jenisTransaksi === 'REMAINING_PAYMENT' && (
             <div>
               <Label>Referensi Invoice DP</Label>
@@ -83,6 +177,8 @@ export default function HeaderForm({
           placeholder="Masukkan Kode Transaksi"
         />
       </div>
+
+      
       <div>
         <Label>NPWP/NIK Pembeli</Label>
         <Input 
