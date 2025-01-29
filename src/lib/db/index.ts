@@ -4,23 +4,29 @@ import mysql from 'mysql2/promise';
 import * as eipSchema from './schema/eip';
 import * as taxSchema from './schema/tax';
 
-// Create connections for both databases
-const eipConnection = await mysql.createConnection({
+// Create a connection pool instead of single connections
+const eipPool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: 'eip_staging',
-  ssl: process.env.NODE_ENV === 'production' ? {} : undefined
+  ssl: process.env.NODE_ENV === 'production' ? {} : undefined,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-const taxConnection = await mysql.createConnection({
+const taxPool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: 'DB_Dept_Tax',
-  ssl: process.env.NODE_ENV === 'production' ? {} : undefined
+  ssl: process.env.NODE_ENV === 'production' ? {} : undefined,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-// Initialize Drizzle with the connections
-export const eipDb = drizzle(eipConnection, { schema: eipSchema, mode: 'default' });
-export const taxDb = drizzle(taxConnection, { schema: taxSchema, mode: 'default' });
+// Initialize Drizzle with the connection pools
+export const eipDb = drizzle(eipPool, { schema: eipSchema, mode: 'default' });
+export const taxDb = drizzle(taxPool, { schema: taxSchema, mode: 'default' });
