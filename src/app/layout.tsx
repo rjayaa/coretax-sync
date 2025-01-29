@@ -1,30 +1,20 @@
-// app/layout.tsx
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+// src/app/layout.tsx
+import { QueryProvider } from '@/components/providers/query-provider'
+import { SessionProvider } from '@/components/providers/session-provider'
 import './globals.css'
-import { getServerSession } from 'next-auth'
-import SessionProvider from '@/components/providers/session-provider'
-import { authOptions } from './api/auth/[...nextauth]/route'
 
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'Tax Management System',
-  description: 'Internal tax management system',
-}
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
-
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <SessionProvider session={session}>
-          {children}
+      <body>
+        <SessionProvider>
+          <QueryProvider>
+            {children}
+          </QueryProvider>
         </SessionProvider>
       </body>
     </html>

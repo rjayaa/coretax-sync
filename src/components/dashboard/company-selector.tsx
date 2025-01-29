@@ -25,10 +25,10 @@ export function CompanySelector() {
     }
   }, [status, router])
 
-  const handleCompanySelect = (companyData: any) => {
-    localStorage.setItem('selectedCompany', JSON.stringify(companyData))
-    router.push('/dashboard')
-  }
+const handleCompanySelect = (companyData: any) => {
+  localStorage.setItem('selectedCompany', JSON.stringify(companyData))
+  router.push('/invoices') // Update ini dari '/dashboard' ke '/invoices'
+}
 
   // Loading state
   if (status === 'loading') {
@@ -43,7 +43,7 @@ export function CompanySelector() {
   const assignedCompanies = session?.user?.companies || []
 
   // Debug log untuk companies yang akan di-render
-  console.log('Companies to render:', assignedCompanies)
+  // console.log('Companies to render:', assignedCompanies)
 
   return (
     <div className="container max-w-4xl mx-auto py-8">

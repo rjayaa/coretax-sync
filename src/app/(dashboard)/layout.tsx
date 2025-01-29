@@ -1,4 +1,4 @@
-// app/(dashboard)/layout.tsx
+// src/app/(dashboard)/layout.tsx
 import { Navbar } from '@/components/dashboard/navbar'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
