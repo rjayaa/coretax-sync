@@ -1,5 +1,5 @@
-// lib/db/schema/tax.ts
-import { mysqlTable, varchar, text, decimal, timestamp, datetime, boolean, int } from 'drizzle-orm/mysql-core'
+// src/lib/db/schema/tax.ts
+import { mysqlTable, varchar, text, decimal, timestamp, datetime, boolean, int, mysqlEnum } from 'drizzle-orm/mysql-core'
 import { sql } from 'drizzle-orm'
 
 export const taxMasterBarang = mysqlTable('T_L_EFW_TAX_MASTER_BARANG', {
@@ -52,7 +52,7 @@ export const taxInvoiceHeader = mysqlTable('T_L_EFW_TAX_INVOICE_HEADER', {
   id: varchar('id', { length: 36 }).primaryKey(),
   customer_id: varchar('customer_id', { length: 36 }).notNull(),
   company_id: varchar('company_id', { length: 36 }).notNull(),
-  transaction_type: varchar('transaction_type', { length: 20 }).notNull(),
+  transaction_type: mysqlEnum('transaction_type', ['FULL_PAYMENT', 'DOWN_PAYMENT', 'REMAINING_PAYMENT']).notNull(),
   invoice_date: datetime('invoice_date').notNull(),
   invoice_type: varchar('invoice_type', { length: 50 }).notNull().default('Normal'),
   transaction_code: varchar('transaction_code', { length: 50 }).notNull(),
@@ -78,23 +78,16 @@ export const taxInvoiceHeader = mysqlTable('T_L_EFW_TAX_INVOICE_HEADER', {
 export const taxInvoiceStatus = mysqlTable('T_L_EFW_TAX_INVOICE_STATUS', {
   id: varchar('id', { length: 36 }).primaryKey(),
   invoice_id: varchar('invoice_id', { length: 36 }).notNull(),
-  status: varchar('status', { length: 20 }).notNull(),
+  status: mysqlEnum('status', ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'EXPORTED']).notNull(),
   notes: text('notes'),
   created_at: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`),
   created_by: varchar('created_by', { length: 20 }).notNull()
 })
 
-export const taxUserRoles = mysqlTable('T_L_EFW_TAX_USER_ROLES', {
-  id: varchar('id', { length: 36 }).primaryKey(),
-  idnik: varchar('idnik', { length: 20 }).notNull(),
-  company_code: varchar('company_code', { length: 50 }).notNull(),
-  is_active: boolean('is_active').default(true)
-})
-
 export const taxInvoiceDetail = mysqlTable('T_L_EFW_TAX_INVOICE_DETAIL', {
   id: varchar('id', { length: 36 }).primaryKey(),
   invoice_id: varchar('invoice_id', { length: 36 }).notNull(),
-  item_type: varchar('item_type', { length: 10 }).notNull(),
+  item_type: mysqlEnum('item_type', ['GOODS', 'SERVICE']).notNull(),
   goods_id: varchar('goods_id', { length: 36 }),
   service_id: varchar('service_id', { length: 36 }),
   item_name: varchar('item_name', { length: 255 }).notNull(),
@@ -114,4 +107,12 @@ export const taxInvoiceDetail = mysqlTable('T_L_EFW_TAX_INVOICE_DETAIL', {
   created_by: varchar('created_by', { length: 20 }).notNull(),
   updated_at: timestamp('updated_at').onUpdateNow(),
   updated_by: varchar('updated_by', { length: 20 })
+})
+
+
+export const taxUserRoles = mysqlTable('T_L_EFW_TAX_USER_ROLES', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  idnik: varchar('idnik', { length: 20 }).notNull(),
+  company_code: varchar('company_code', { length: 50 }).notNull(),
+  is_active: boolean('is_active').default(true)
 })

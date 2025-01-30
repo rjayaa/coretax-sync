@@ -291,99 +291,125 @@ const isFormValid = Boolean(
   )
 
     const handleSubmit = async () => {
-    console.log('Submit clicked with state:', {
-      customer: selectedCustomer,
-      company: selectedCompany,
-      items,
-      isFormValid
-    });
+  console.log('Submit clicked with state:', {
+    customer: selectedCustomer,
+    company: selectedCompany,
+    items,
+    isFormValid
+  });
 
-    if (!validateForm()) {
-      return;
-    }
+  if (!validateForm()) {
+    return;
+  }
 
-    setIsLoading(true)
+  setIsLoading(true);
 
-    try {
-      const invoiceId = uuidv4()
+  try {
+    const invoiceId = uuidv4();
+    const currentDate = new Date();
+    
+    // Prepare invoice header data
+    const headerData = {
+      id: invoiceId,
+      customer_id: selectedCustomer!.id,
+      company_code: selectedCompany!.company_code, // Menggunakan company_code untuk lookup di API
+      transaction_type: 'FULL_PAYMENT' as const,
+      invoice_date: currentDate.toISOString(),
+      invoice_type: 'Normal',
+      transaction_code: `INV/${currentDate.getFullYear()}/${invoiceId.slice(0, 8)}`,
+      buyer_doc_type: 'TIN',
+      buyer_country: 'IDN',
+      buyer_doc_number: selectedCustomer!.npwp,
+      buyer_email: '',
+      created_by: session!.user!.username
+    };
+
+    // Calculate totals
+    const totalNominal = items.reduce((sum, item) => 
+      sum + (Number(item.unit_price) * Number(item.quantity)), 0
+    );
+
+    // Prepare invoice details data
+    const detailsData = items.map(item => {
+      const itemPrice = Number(item.unit_price) * Number(item.quantity);
+      const itemDPP = Number((itemPrice * 11 / 12).toFixed(2));
+      const itemPPN = Number((itemDPP * 0.12).toFixed(2));
       
-      // Prepare invoice header data
-      const headerData = {
-        id: invoiceId,
-        customer_id: selectedCustomer!.id,
-        company_code: selectedCompany!.company_code,
-        transaction_type: 'FULL_PAYMENT',
-        invoice_date: new Date().toISOString(),
-        invoice_type: 'Normal',
-        transaction_code: `INV/${new Date().getFullYear()}/${invoiceId.slice(0, 8)}`,
-        status: 'DRAFT',
-        buyer_doc_type: 'TIN',
-        buyer_country: 'IDN',
-        buyer_doc_number: selectedCustomer!.npwp,
-        buyer_email: '',
-        created_by: session!.user!.username
-      }
-
-      // Prepare invoice details data
-      const detailsData = items.map(item => ({
+      return {
         id: uuidv4(),
         invoice_id: invoiceId,
         item_type: item.item_type,
         goods_id: item.goods_id || null,
         service_id: item.service_id || null,
-        item_name: item.item_name,
+        item_name: item.item_name.trim(),
         unit: item.unit,
         unit_price: Number(item.unit_price),
         quantity: Number(item.quantity),
-        total_price: Number(item.unit_price) * Number(item.quantity),
+        total_price: itemPrice,
         discount: 0,
         down_payment: 0,
-        dpp: paymentDetails.dpp,
+        dpp: itemDPP,
         dpp_other: 0,
         ppn_rate: 12.00,
-        ppn: paymentDetails.ppn,
+        ppn: itemPPN,
         ppnbm_rate: 10.00,
         ppnbm: 0,
         created_by: session!.user!.username
-      }))
+      };
+    });
 
-      console.log('Submitting data:', { headerData, detailsData })
-
-      const response = await fetch('/api/invoices', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          header: headerData,
-          details: detailsData
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create invoice')
+    console.log('Submitting data:', { 
+      headerData, 
+      detailsData,
+      totalCalculations: {
+        totalNominal,
+        totalDPP: detailsData.reduce((sum, item) => sum + item.dpp, 0),
+        totalPPN: detailsData.reduce((sum, item) => sum + item.ppn, 0)
       }
+    });
 
-      toast({
-        title: "Sukses",
-        description: "Faktur berhasil disimpan",
-      })
+    const response = await fetch('/api/invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        header: headerData,
+        details: detailsData
+      }),
+    });
 
-      router.push('/invoices')
-      router.refresh()
-
-    } catch (error) {
-      console.error('Error creating invoice:', error)
-      setError(error instanceof Error ? error.message : 'Gagal membuat faktur')
-      toast({
-        title: "Error",
-        description: "Gagal menyimpan faktur. Silakan coba lagi.",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create invoice');
     }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to create invoice');
+    }
+
+    toast({
+      title: "Sukses",
+      description: "Faktur berhasil disimpan",
+    });
+
+    router.push('/invoices');
+    router.refresh();
+
+  } catch (error) {
+    console.error('Error creating invoice:', error);
+    setError(error instanceof Error ? error.message : 'Gagal membuat faktur');
+    toast({
+      title: "Error",
+      description: "Gagal menyimpan faktur. Silakan coba lagi.",
+      variant: "destructive"
+    });
+  } finally {
+    setIsLoading(false);
   }
+};
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
