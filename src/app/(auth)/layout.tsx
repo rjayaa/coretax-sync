@@ -1,4 +1,4 @@
-// app/(auth)/layout.tsx (Perbaikan)
+// app/(auth)/layout.tsx 
 export default function AuthLayout({
   children,
 }: {

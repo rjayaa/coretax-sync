@@ -1,3 +1,5 @@
+// lib/db/schema/eip.ts
+
 import { mysqlTable, varchar, int, datetime, boolean } from 'drizzle-orm/mysql-core';
 export const userLoginView = mysqlTable('V_L_FAT_USER_LOGIN', {
     idlogin: int('idlogin'),

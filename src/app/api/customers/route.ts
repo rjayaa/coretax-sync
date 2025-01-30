@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { taxMasterCustomer } from '@/lib/db/schema/tax';
-import { eq } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
@@ -12,23 +12,41 @@ export async function GET() {
         nama: taxMasterCustomer.nama,
         npwp: taxMasterCustomer.npwp,
         jalan: taxMasterCustomer.jalan,
-        alamatLengkap: taxDb.sql`CONCAT(
-          COALESCE(${taxMasterCustomer.jalan}, ''), ' ',
-          COALESCE(${taxMasterCustomer.blok}, ''), ' ',
-          COALESCE(${taxMasterCustomer.nomor}, ''), ' RT.',
-          COALESCE(${taxMasterCustomer.rt}, ''), ' RW.',
-          COALESCE(${taxMasterCustomer.rw}, ''), ' ',
-          COALESCE(${taxMasterCustomer.kelurahan}, ''), ' ',
-          COALESCE(${taxMasterCustomer.kecamatan}, ''), ' ',
-          COALESCE(${taxMasterCustomer.kabupaten}, ''), ' ',
-          COALESCE(${taxMasterCustomer.propinsi}, ''), ' ',
-          COALESCE(${taxMasterCustomer.kode_pos}, '')
-        )`
+        blok: taxMasterCustomer.blok,
+        nomor: taxMasterCustomer.nomor,
+        rt: taxMasterCustomer.rt,
+        rw: taxMasterCustomer.rw,
+        kelurahan: taxMasterCustomer.kelurahan,
+        kecamatan: taxMasterCustomer.kecamatan,
+        kabupaten: taxMasterCustomer.kabupaten,
+        propinsi: taxMasterCustomer.propinsi,
+        kode_pos: taxMasterCustomer.kode_pos
       })
       .from(taxMasterCustomer)
-      .where(eq(taxMasterCustomer.npwp, taxDb.sql`npwp IS NOT NULL`));
+      .where(sql`${taxMasterCustomer.npwp} IS NOT NULL`);
 
-    return NextResponse.json({ customers });
+    // Transform data to include formatted address
+    const formattedCustomers = customers.map(customer => ({
+      id: customer.id,
+      nama: customer.nama,
+      npwp: customer.npwp,
+      jalan: customer.jalan,
+      // Format alamat lengkap di sini
+      alamatLengkap: [
+        customer.jalan,
+        customer.blok,
+        customer.nomor,
+        customer.rt ? `RT.${customer.rt}` : '',
+        customer.rw ? `RW.${customer.rw}` : '',
+        customer.kelurahan,
+        customer.kecamatan,
+        customer.kabupaten,
+        customer.propinsi,
+        customer.kode_pos
+      ].filter(Boolean).join(' ')
+    }));
+
+    return NextResponse.json({ customers: formattedCustomers });
   } catch (error) {
     console.error('Error fetching customers:', error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, User, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const formSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -24,6 +24,7 @@ type FormValues = z.infer<typeof formSchema>;
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -34,17 +35,20 @@ export function LoginForm() {
     },
   });
 
-  const isLoading = form.formState.isSubmitting;
+  // Load remembered username if exists
+  useEffect(() => {
+    const rememberedUsername = localStorage.getItem('rememberMe');
+    if (rememberedUsername) {
+      form.setValue('username', rememberedUsername);
+      form.setValue('rememberMe', true);
+    }
+  }, [form]);
 
   async function onSubmit(data: FormValues) {
-    try {
-      // Handle remember me
-      if (data.rememberMe) {
-        localStorage.setItem('rememberMe', data.username);
-      } else {
-        localStorage.removeItem('rememberMe');
-      }
+    setIsLoading(true);
+    setError("");
 
+    try {
       const res = await signIn("credentials", {
         username: data.username,
         password: data.password,
@@ -56,10 +60,20 @@ export function LoginForm() {
         return;
       }
 
+      // Handle remember me after successful login
+      if (data.rememberMe) {
+        localStorage.setItem('rememberMe', data.username);
+      } else {
+        localStorage.removeItem('rememberMe');
+      }
+
       router.push("/company-selection");
       router.refresh();
     } catch (error) {
       setError("An error occurred during login");
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
