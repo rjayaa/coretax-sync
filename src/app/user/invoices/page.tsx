@@ -1,4 +1,4 @@
-// src/app/(dashboard)/(dashboard)/invoices/page.tsx
+
 'use client'
 
 import  InvoiceTable  from '@/components/invoice/invoice-table'

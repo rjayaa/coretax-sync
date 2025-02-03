@@ -67,7 +67,7 @@ export function LoginForm() {
         localStorage.removeItem('rememberMe');
       }
 
-      router.push("/company-selection");
+      router.push("/user/company-selection");
       router.refresh();
     } catch (error) {
       setError("An error occurred during login");

@@ -51,7 +51,7 @@ export function CreateInvoiceForm() {
             description: "Data perusahaan tidak lengkap. Silakan pilih perusahaan kembali.",
             variant: "destructive"
           })
-          router.push('/company-selection')
+          router.push('/user/company-selection')
           return
         }
         
@@ -63,7 +63,7 @@ export function CreateInvoiceForm() {
           description: "Gagal memuat data perusahaan. Silakan pilih perusahaan kembali.",
           variant: "destructive"
         })
-        router.push('/company-selection')
+        router.push('/user/company-selection')
       }
     } else {
       console.log('No company data found')
@@ -71,7 +71,7 @@ export function CreateInvoiceForm() {
         title: "Info",
         description: "Silakan pilih perusahaan terlebih dahulu",
       })
-      router.push('/company-selection')
+      router.push('/user/company-selection')
     }
   }, []) // Hapus dependencies yang tidak perlu
 
@@ -264,7 +264,7 @@ const isFormValid = Boolean(
       description: "Faktur berhasil disimpan",
     });
 
-    router.push('/invoices');
+    router.push('/user/invoices');
     router.refresh();
 
   } catch (error) {

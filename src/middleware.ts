@@ -5,8 +5,8 @@ import { NextResponse } from "next/server"
 export default withAuth(
   function middleware(req) {
     // If already logged in and trying to access login page
-    if (req.nextUrl.pathname === "/login" && req.nextauth.token) {
-      return NextResponse.redirect(new URL("/company-selection", req.url))
+    if (req.nextUrl.pathname.startsWith("/auth/login") && req.nextauth.token) {
+      return NextResponse.redirect(new URL("/user/company-selection", req.url))
     }
 
     return NextResponse.next()
@@ -15,7 +15,7 @@ export default withAuth(
     callbacks: {
       authorized: ({ req, token }) => {
         // Allow public access to login page
-        if (req.nextUrl.pathname === "/login") {
+        if (req.nextUrl.pathname.startsWith("/auth/login")) {
           return true
         }
         // Require authentication for all other pages
@@ -25,17 +25,8 @@ export default withAuth(
   }
 )
 
-// Protect all routes except login
 export const config = {
   matcher: [
-    /*
-     * Match all paths except:
-     * 1. /login (public page)
-     * 2. /_next (Next.js internals)
-     * 3. /api/auth (NextAuth.js endpoints)
-     * 4. /_static (static files)
-     * 5. /favicon.ico, /images (public assets)
-     */
-    '/((?!login|_next|api/auth|_static|favicon.ico|images).*)',
+    '/((?!auth/login|_next|api/auth|_static|favicon.ico|images).*)',
   ],
 }

@@ -155,7 +155,7 @@ const InvoiceTable = () => {
             </p>
           </div>
           <Button 
-            onClick={() => router.push('/invoices/create')}
+            onClick={() => router.push('/user/invoices/create')}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
@@ -325,7 +325,7 @@ const InvoiceTable = () => {
                         <Button
                           variant="ghost" 
                           size="sm"
-                          onClick={() => router.push(`/invoices/${invoice.id}`)}
+                          onClick={() => router.push(`/user/invoices/${invoice.id}`)}
                         >
                           Detail
                         </Button>
@@ -333,7 +333,7 @@ const InvoiceTable = () => {
                           <Button
                             variant="ghost" 
                             size="sm"
-                            onClick={() => router.push(`/invoices/${invoice.id}/edit`)}
+                            onClick={() => router.push(`/user/invoices/${invoice.id}/edit`)}
                           >
                             Edit
                           </Button>

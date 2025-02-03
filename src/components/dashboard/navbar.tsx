@@ -41,7 +41,7 @@ export function Navbar() {
   }
 
   const handleCompanySwitch = () => {
-    router.push('/company-selection')
+    router.push('/user/company-selection')
   }
 
   return (
@@ -49,7 +49,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           {/* Logo */}
-          <Link href="/company-selection" className="flex items-center space-x-2">
+          <Link href="/user/company-selection" className="flex items-center space-x-2">
             <Image
               src="/images/logo/full_width_logo_maa.png"
               alt="MAA Logo"
