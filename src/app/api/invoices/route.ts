@@ -3,14 +3,153 @@ import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { 
   taxInvoiceHeader, 
-  taxInvoiceDetail, 
-  taxInvoiceStatus,  // Add this import
+  taxInvoiceDetail,
+  taxInvoiceStatus,
   taxMasterCustomer,
-  taxMasterCompany 
+  taxMasterCompany,
+  taxUserRoles
 } from '@/lib/db/schema/tax';
-import { eq, and, sql, between } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
+import { eq, and, sql, between, inArray, desc } from 'drizzle-orm';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]/route";
+import uuidv4, { uuid } from 'uuidv4';
 
+export async function GET(req: Request) {
+  try {
+    // Get user session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.username) {
+      console.log('No session found');
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    console.log('User session:', session.user);
+
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const status = searchParams.get('status');
+    const customerId = searchParams.get('customerId');
+
+    console.log('Search params:', { startDate, endDate, status, customerId });
+
+    // Get user's authorized companies
+    const userCompanies = await taxDb
+      .select({
+        company_code: taxUserRoles.company_code
+      })
+      .from(taxUserRoles)
+      .where(
+        and(
+          eq(taxUserRoles.idnik, session.user.username),
+          eq(taxUserRoles.is_active, true)
+        )
+      );
+
+    const companyCodes = userCompanies.map(c => c.company_code);
+    console.log('User company codes:', companyCodes);
+
+    if (companyCodes.length === 0) {
+      console.log('No companies found for user');
+      return NextResponse.json({ success: true, invoices: [] });
+    }
+
+    // Get company IDs based on codes
+    const companies = await taxDb
+      .select({
+        id: taxMasterCompany.id
+      })
+      .from(taxMasterCompany)
+      .where(inArray(taxMasterCompany.company_code, companyCodes));
+
+    const companyIds = companies.map(c => c.id);
+    console.log('Company IDs:', companyIds);
+
+    // Build where conditions
+    const whereConditions = [
+      inArray(taxInvoiceHeader.company_id, companyIds)
+    ];
+    
+    if (startDate && endDate) {
+      whereConditions.push(
+        between(taxInvoiceHeader.invoice_date, new Date(startDate), new Date(endDate))
+      );
+    }
+
+    if (status && status !== 'ALL') {
+      whereConditions.push(
+        eq(taxInvoiceStatus.status, status)
+      );
+    }
+
+    if (customerId && customerId !== 'ALL') {
+      whereConditions.push(
+        eq(taxInvoiceHeader.customer_id, customerId)
+      );
+    }
+
+    console.log('Executing query with conditions:', whereConditions);
+
+    // Fetch invoices with joins
+    const invoices = await taxDb
+      .select({
+        id: taxInvoiceHeader.id,
+        date: taxInvoiceHeader.invoice_date,
+        number: taxInvoiceHeader.transaction_code,
+        type: taxInvoiceHeader.invoice_type,
+        customer: taxMasterCustomer.nama,
+        npwp: taxMasterCustomer.npwp,
+        company: taxMasterCompany.company_name,
+        dpp: sql<string>`COALESCE(SUM(${taxInvoiceDetail.dpp}), 0)`.as('dpp'),
+        ppn: sql<string>`COALESCE(SUM(${taxInvoiceDetail.ppn}), 0)`.as('ppn'),
+        status: taxInvoiceStatus.status
+      })
+      .from(taxInvoiceHeader)
+      .innerJoin(taxMasterCompany, eq(taxInvoiceHeader.company_id, taxMasterCompany.id))
+      .innerJoin(taxMasterCustomer, eq(taxInvoiceHeader.customer_id, taxMasterCustomer.id))
+      .leftJoin(taxInvoiceDetail, eq(taxInvoiceHeader.id, taxInvoiceDetail.invoice_id))
+      .leftJoin(
+        taxInvoiceStatus,
+        and(
+          eq(taxInvoiceHeader.id, taxInvoiceStatus.invoice_id),
+          sql`${taxInvoiceStatus.created_at} = (
+            SELECT MAX(created_at)
+            FROM T_L_EFW_TAX_INVOICE_STATUS
+            WHERE invoice_id = ${taxInvoiceHeader.id}
+          )`
+        )
+      )
+      .where(and(...whereConditions))
+      .groupBy(
+        taxInvoiceHeader.id,
+        taxInvoiceHeader.invoice_date,
+        taxInvoiceHeader.transaction_code,
+        taxInvoiceHeader.invoice_type,
+        taxMasterCustomer.nama,
+        taxMasterCustomer.npwp,
+        taxMasterCompany.company_name,
+        taxInvoiceStatus.status
+      )
+      .orderBy(desc(taxInvoiceHeader.invoice_date));
+
+    console.log('Query result:', invoices);
+
+    return NextResponse.json({
+      success: true,
+      invoices
+    });
+
+  } catch (error) {
+    console.error('Error fetching invoices:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch invoices' },
+      { status: 500 }
+    );
+  }
+}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -89,7 +228,7 @@ export async function POST(request: Request) {
 
       // Insert Initial Status
       await tx.insert(taxInvoiceStatus).values({
-        id: uuidv4(),
+        id: uuid(),
         invoice_id: header.id,
         status: 'DRAFT',
         created_by: header.created_by,
