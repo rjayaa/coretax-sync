@@ -17,8 +17,6 @@ import {
   User, 
   Sun, 
   Moon,
-  LayoutDashboard,
-  FileText,
   Settings,
   ChevronDown
 } from 'lucide-react'
@@ -45,33 +43,29 @@ export function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-6">
-          {/* Logo */}
-          <Link href="/user/company-selection" className="flex items-center space-x-2">
+    <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:bg-background/95 dark:border-border">
+      <div className="flex h-16 items-center justify-between px-4 md:px-6">
+        {/* Left section: Logo */}
+        <div className="flex items-center gap-4">
+          <Link href="/user/company-selection" className="flex items-center">
             <Image
               src="/images/logo/full_width_logo_maa.png"
               alt="MAA Logo"
-               width={260}
+              width={260}
               height={160}
-              className="rounded"
+              className="h-8 w-auto dark:brightness-200 dark:contrast-200"
+              priority
             />
-            {/* <span className="hidden font-bold sm:inline-block">
-              Tax Management System
-            </span> */}
           </Link>
-
-         
-         
         </div>
 
-        <div className="flex items-center gap-4">
+        {/* Right section: Company info, theme toggle, user menu */}
+        <div className="flex items-center space-x-4">
           {/* Company Selector */}
           {selectedCompany.company_name && (
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-sm">
+            <div className="hidden md:flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm text-foreground dark:bg-primary/20">
               <Building2 className="h-4 w-4" />
-              <span>{selectedCompany.company_name}</span>
+              <span className="hidden md:inline">{selectedCompany.company_name}</span>
             </div>
           )}
 
@@ -80,7 +74,7 @@ export function Navbar() {
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="rounded-full"
+            className="rounded-full hover:bg-accent hover:text-accent-foreground"
           >
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
@@ -90,25 +84,39 @@ export function Navbar() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
+              <Button 
+                variant="ghost" 
+                className="flex items-center gap-2 px-2 hover:bg-accent hover:text-accent-foreground"
+              >
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline-block">{session?.user?.username}</span>
+                <span className="hidden sm:inline">{session?.user?.username}</span>
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={handleCompanySwitch}>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-56 bg-popover text-popover-foreground"
+            >
+              <DropdownMenuItem 
+                onClick={handleCompanySwitch} 
+                className="flex items-center hover:bg-accent hover:text-accent-foreground"
+              >
                 <Building2 className="mr-2 h-4 w-4" />
-                Switch Company
+                <span>Switch Company</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex items-center hover:bg-accent hover:text-accent-foreground"
+              >
                 <Settings className="mr-2 h-4 w-4" />
-                Settings
+                <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
+              <DropdownMenuItem 
+                onClick={handleSignOut} 
+                className="flex items-center text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
-                Logout
+                <span>Logout</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

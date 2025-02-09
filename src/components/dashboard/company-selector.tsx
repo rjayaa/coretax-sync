@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -7,7 +6,10 @@ import { useSession } from 'next-auth/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Building2, ChevronRight, Building } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Company } from '@/types/company'
+import { taxMasterCompany } from '@/lib/db/schema/master'
+import type { InferSelectModel } from 'drizzle-orm'
+
+type Company = InferSelectModel<typeof taxMasterCompany>
 
 export function CompanySelector() {
   const router = useRouter()
@@ -18,11 +20,24 @@ export function CompanySelector() {
     setMounted(true)
   }, [])
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
+  if (!mounted) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <div className="space-y-4 text-center">
+          <div className="relative">
+            <Building2 className="h-12 w-12 mx-auto text-primary animate-pulse" />
+            <div className="absolute inset-0 h-12 w-12 mx-auto bg-primary/10 blur-xl rounded-full" />
+          </div>
+          <p className="text-muted-foreground text-sm">Loading companies...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'unauthenticated') {
+    router.push('/login')
+    return null
+  }
 
   const handleCompanySelect = (companyData: Company) => {
     try {
@@ -37,30 +52,14 @@ export function CompanySelector() {
         company_code: companyData.company_code,
         company_name: companyData.company_name,
         npwp_company: companyData.npwp_company || '',
-        is_active: companyData.is_active,
         status: companyData.status
       }
 
       localStorage.setItem('selectedCompany', JSON.stringify(companyToStore))
-      
       router.push('/user/invoices')
     } catch (error) {
       console.error('Error selecting company:', error)
     }
-  }
-
-  if (!mounted || status === 'loading') {
-    return (
-      <div className="h-[80vh] flex items-center justify-center">
-        <div className="space-y-4 text-center">
-          <div className="relative">
-            <Building2 className="h-12 w-12 mx-auto text-primary animate-pulse" />
-            <div className="absolute inset-0 h-12 w-12 mx-auto bg-primary/10 blur-xl rounded-full" />
-          </div>
-          <p className="text-muted-foreground text-sm">Loading companies...</p>
-        </div>
-      </div>
-    )
   }
 
   const assignedCompanies = session?.user?.companies || []

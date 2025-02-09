@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: 'E-Faktur System - Login',
+  title: 'Import Tax - Login',
   description: 'Tax Integration to CoreTaxs',
 }
 
@@ -42,7 +42,7 @@ export default function LoginPage() {
 
           {/* Title & Subtitle */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-semibold text-white mb-2">E-Faktur System</h1>
+            <h1 className="text-2xl font-semibold text-white mb-2">Import Tax Login</h1>
             <div className="flex items-center justify-center gap-2 text-gray-200">
               Tax Integration to CoreTax
               <Image 
@@ -60,7 +60,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center mt-4 text-sm text-gray-300">
-          &copy; {currentYear} E-Faktur System Portal{' '}
+          &copy; {currentYear} Import Tax Portal{' '}
           <span className="text-red-500">❤</span> by Mineral Alam Abadi
         </div>
       </div>
