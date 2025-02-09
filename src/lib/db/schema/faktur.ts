@@ -1,4 +1,3 @@
-// src/lib/db/schema/faktur.ts
 import { 
   mysqlTable, 
   varchar, 
@@ -11,17 +10,13 @@ import {
 } from 'drizzle-orm/mysql-core';
 import { sql } from 'drizzle-orm';
 import { relations } from 'drizzle-orm';
-
-// Import tabel referensi yang dibutuhkan
+import { detailFaktur } from './detail-faktur';
 import { 
   refKodeTransaksi, 
   refKeteranganTambahan,
   refCapFasilitas,
   refJenisPembeli 
 } from './references';
-
-// Import tabel detail untuk relations
-import { detailFaktur } from './detail-faktur';
 
 export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR', {
   id: varchar('id', { length: 36 }).primaryKey(),
@@ -57,14 +52,11 @@ export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR', {
     .onUpdateNow()
     .notNull(),
 }, (table) => ({
-  // Indexes untuk optimasi query
   tanggalIdx: index('idx_faktur_tanggal').on(table.tanggalFaktur),
   statusIdx: index('idx_faktur_status').on(table.status),
   npwpPenjualIdx: index('idx_faktur_npwp_penjual').on(table.npwpPenjual),
   npwpPembeliIdx: index('idx_faktur_npwp_pembeli').on(table.npwpPembeli),
   nomorInvoiceIdx: index('idx_faktur_nomor_invoice').on(table.nomorInvoice),
-  
-  // Composite indexes untuk foreign keys
   keteranganTambahanIdx: index('idx_keterangan_tambahan').on(
     table.kodeTransaksi,
     table.keteranganTambahanKode
@@ -75,7 +67,6 @@ export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR', {
   )
 }));
 
-// Definisi relasi untuk tabel faktur
 export const fakturRelations = relations(faktur, ({ many, one }) => ({
   details: many(detailFaktur),
   kodeTransaksiRef: one(refKodeTransaksi, {
@@ -96,6 +87,5 @@ export const fakturRelations = relations(faktur, ({ many, one }) => ({
   }),
 }));
 
-// Types untuk TypeScript
 export type Faktur = typeof faktur.$inferSelect;
 export type NewFaktur = typeof faktur.$inferInsert;

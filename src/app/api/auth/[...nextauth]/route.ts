@@ -5,7 +5,7 @@ import { eipDb, taxDb } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { userLoginView } from "@/lib/db/schema/eip";
-import { taxUserRoles, taxMasterCompany } from "@/lib/db/schema/tax";
+import { taxUserRoles, taxMasterCompany } from "@/lib/db/schema/index";
 
 export const authOptions = {
   providers: [

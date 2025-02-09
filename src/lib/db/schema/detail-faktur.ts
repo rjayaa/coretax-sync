@@ -13,6 +13,7 @@ import { sql } from 'drizzle-orm';
 import { relations } from 'drizzle-orm';
 import { faktur } from './faktur';
 
+
 export const detailFaktur = mysqlTable('T_L_EFW_TAX_DETAIL_FAKTUR', {
   id: varchar('id', { length: 36 }).primaryKey(),
   fakturId: varchar('faktur_id', { length: 36 })
@@ -39,18 +40,14 @@ export const detailFaktur = mysqlTable('T_L_EFW_TAX_DETAIL_FAKTUR', {
     .onUpdateNow()
     .notNull(),
 }, (table) => ({
-  // Unique constraint untuk nomor urut dalam satu faktur
   fakturNomorUrutIdx: unique('uk_faktur_nomor_urut').on(
     table.fakturId,
     table.nomorUrut
   ),
-  // Index untuk pencarian berdasarkan kode barang
   kodeBarangIdx: index('idx_detail_faktur_kode_barang').on(table.kodeBarangJasa),
-  // Index untuk pencarian berdasarkan faktur
   fakturIdx: index('idx_detail_faktur_faktur').on(table.fakturId),
 }));
 
-// Definisi relasi untuk tabel detail faktur
 export const detailFakturRelations = relations(detailFaktur, ({ one }) => ({
   faktur: one(faktur, {
     fields: [detailFaktur.fakturId],
@@ -58,27 +55,5 @@ export const detailFakturRelations = relations(detailFaktur, ({ one }) => ({
   }),
 }));
 
-// Types untuk TypeScript
 export type DetailFaktur = typeof detailFaktur.$inferSelect;
 export type NewDetailFaktur = typeof detailFaktur.$inferInsert;
-
-// Helper function untuk menghitung nilai-nilai turunan
-export const calculateDerivedValues = (
-  hargaSatuan: number,
-  jumlah: number,
-  diskon: number = 0,
-  tarifPpnbm: number = 0
-) => {
-  const hargaTotal = hargaSatuan * jumlah;
-  const nilaiDiskon = (diskon / 100) * hargaTotal;
-  const dpp = (hargaTotal * 11) / 12;
-  const ppn = dpp * 0.12; // PPN 12%
-  const ppnbm = dpp * (tarifPpnbm / 100);
-
-  return {
-    hargaTotal,
-    dpp,
-    ppn,
-    ppnbm,
-  };
-};

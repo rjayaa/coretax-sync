@@ -1,7 +1,7 @@
 // src/app/api/customers/route.ts
 import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
-import { taxMasterCustomer } from '@/lib/db/schema/tax';
+import { taxMasterCustomer } from '@/lib/db/index';
 import { sql, eq } from 'drizzle-orm';
 
 export async function GET() {

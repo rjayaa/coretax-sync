@@ -1,7 +1,7 @@
 // src/app/api/items/route.ts
 import { NextResponse } from 'next/server'
 import { taxDb } from '@/lib/db'
-import { taxMasterBarang, taxMasterJasa } from '@/lib/db/schema/tax'
+import { taxMasterBarang, taxMasterJasa } from '@/lib/db/index'
 import { eq, or, like } from 'drizzle-orm'
 
 export async function GET(request: Request) {

@@ -1,6 +1,5 @@
-// src/lib/db/schema/master.ts
 import { mysqlTable, varchar, text, timestamp, datetime, boolean, int } from 'drizzle-orm/mysql-core';
-import { sql } from 'drizzle-orm';
+
 
 // Master Barang
 export const taxMasterBarang = mysqlTable('T_L_EFW_TAX_MASTER_BARANG', {
