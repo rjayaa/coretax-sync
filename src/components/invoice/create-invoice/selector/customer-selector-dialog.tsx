@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -14,7 +13,9 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search, Building2 } from 'lucide-react'
 import { useCustomers } from '@/hooks/use-customer'
 import { cn } from '@/lib/utils'
-import type { Customer } from '@/types/tax-invoice'
+import type { taxMasterCustomer } from '@/lib/db/schema/master'
+
+type Customer = typeof taxMasterCustomer.$inferSelect;
 
 interface CustomerSelectorProps {
   open: boolean
@@ -28,12 +29,13 @@ export function CustomerSelector({
   onSelect
 }: CustomerSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const { data: customers, isLoading } = useCustomers()
+  const { data: customersResponse, isLoading } = useCustomers()
 
-  const filteredCustomers = customers?.filter(customer =>
+  // Pastikan akses data customer dengan benar
+  const filteredCustomers = (customersResponse?.data || []).filter(customer =>
     customer.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.npwp.includes(searchTerm)
-  ) || []
+  )
 
   const handleCustomerSelect = (customer: Customer) => {
     console.log('Customer selected in selector:', customer)
@@ -87,7 +89,7 @@ export function CustomerSelector({
                       <div className="font-medium">{customer.nama}</div>
                       <div className="text-sm text-muted-foreground space-y-1">
                         <div>NPWP: {customer.npwp}</div>
-                        <div className="text-xs">{customer.alamatLengkap}</div>
+                        <div className="text-xs">Alamat: {customer.jalan}</div>
                       </div>
                     </div>
                   </div>

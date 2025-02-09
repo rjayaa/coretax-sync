@@ -77,13 +77,13 @@ export const InvoiceTable = () => {
           </div>
 
           <div className="space-y-4">
-            <InvoiceFilters 
-              filters={filters}
-              onFilterChange={updateFilters}
-              customers={customers || []}
-              isLoadingCustomers={isLoadingCustomers}
-              onClearFilters={clearFilters}
-            />
+                <InvoiceFilters 
+          filters={filters}
+          onFilterChange={updateFilters}
+          customers={customers?.data || []}  // Akses data property dan berikan fallback empty array
+          isLoadingCustomers={isLoadingCustomers}
+          onClearFilters={clearFilters}
+        />
           </div>
         </div>
       </CardHeader>

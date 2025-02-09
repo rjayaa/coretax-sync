@@ -1,25 +1,38 @@
 // src/components/invoice/invoice-filters.tsx
+'use client'
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { InvoiceFilters } from "@/hooks/use-invoice-filters";
-import type { Customer } from "@/hooks/use-customer";
+import type { taxMasterCustomer } from '@/lib/db/schema/master';
+
+type Customer = typeof taxMasterCustomer.$inferSelect;
 
 interface InvoiceFiltersProps {
-  filters: InvoiceFilters;
-  onFilterChange: (filters: Partial<InvoiceFilters>) => void;
+  filters: {
+    startDate: string;
+    endDate: string;
+    status: string;
+    customerId: string;
+  };
+  onFilterChange: (filters: Partial<InvoiceFiltersProps['filters']>) => void;
   customers: Customer[];
   isLoadingCustomers: boolean;
   onClearFilters: () => void;
 }
 
-export const InvoiceFilters = ({
+export function InvoiceFilters({
   filters,
   onFilterChange,
-  customers,
+  customers = [], // Provide default empty array
   isLoadingCustomers,
   onClearFilters,
-}: InvoiceFiltersProps) => {
+}: InvoiceFiltersProps) {
+  if (!Array.isArray(customers)) {
+    console.error('Customers is not an array:', customers);
+    return null;
+  }
+
   return (
     <div className="flex flex-wrap gap-4">
       <div className="flex gap-2">
@@ -75,4 +88,4 @@ export const InvoiceFilters = ({
       </Button>
     </div>
   );
-};
+}

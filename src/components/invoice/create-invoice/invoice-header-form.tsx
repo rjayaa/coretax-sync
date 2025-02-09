@@ -1,13 +1,15 @@
-
 'use client'
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { CustomerSelector } from './customer-selector-dialog'
+import { CustomerSelector } from './selector/customer-selector-dialog'
 import { Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Customer } from '@/types/tax-invoice'
+import type { taxMasterCustomer } from '@/lib/db/schema/master'
+import { formatAlamat } from '@/lib/utils/formatters'
+
+type Customer = typeof taxMasterCustomer.$inferSelect
 
 interface InvoiceHeaderFormProps {
   onCustomerSelect: (customer: Customer) => void
@@ -71,7 +73,9 @@ export function InvoiceHeaderForm({
             </div>
             <div>
               <Label className="text-sm text-muted-foreground">Alamat</Label>
-              <div className="text-sm mt-1">{selectedCustomer.alamatLengkap}</div>
+              <div className="text-sm mt-1 whitespace-pre-line">
+                {formatAlamat(selectedCustomer)}
+              </div>
             </div>
           </div>
         )}

@@ -5,8 +5,8 @@
 // Format angka menjadi format currency Indonesia tanpa simbol mata uang
 // src/lib/utils/formatCurrency.ts
 export const formatCurrency = (value: number | string | null | undefined): string => {
-  if (value === null || value === undefined) {
-    return 'Rp 0';
+  if (value === null || value === undefined || value === '') {
+    return '';
   }
 
   // Konversi ke number jika input string
@@ -14,7 +14,7 @@ export const formatCurrency = (value: number | string | null | undefined): strin
 
   // Handle NaN
   if (isNaN(numValue)) {
-    return 'Rp 0';
+    return '';
   }
 
   return new Intl.NumberFormat('id-ID', {
@@ -24,6 +24,14 @@ export const formatCurrency = (value: number | string | null | undefined): strin
     maximumFractionDigits: 0,
   }).format(numValue);
 };
+
+export const parseCurrency = (value: string): number => {
+  if (!value) return 0;
+  // Hapus semua karakter non-digit
+  const numStr = value.replace(/[^\d-]/g, '');
+  const parsed = parseFloat(numStr);
+  return isNaN(parsed) ? 0 : parsed;
+};
 // Format khusus untuk hasil kalkulasi pajak (dengan 2 desimal)
 export const formatTaxResult = (value: number): string => {
   return new Intl.NumberFormat('id-ID', {
@@ -32,11 +40,6 @@ export const formatTaxResult = (value: number): string => {
   }).format(value)
 }
 
-// Parse string format currency menjadi number
-export const parseCurrency = (formattedValue: string): number => {
-  // Hapus semua karakter non-digit
-  return Number(formattedValue.replace(/[^\d]/g, ''))
-}
 
 // Pembulatan ke 2 angka desimal
 export const roundToTwo = (num: number): number => {
