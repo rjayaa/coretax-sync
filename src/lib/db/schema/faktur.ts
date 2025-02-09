@@ -23,7 +23,7 @@ import {
 // Import tabel detail untuk relations
 import { detailFaktur } from './detail-faktur';
 
-export const faktur = mysqlTable('faktur', {
+export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR', {
   id: varchar('id', { length: 36 }).primaryKey(),
   nomorFaktur: varchar('nomor_faktur', { length: 50 }).unique(),
   npwpPenjual: varchar('npwp_penjual', { length: 20 }).notNull(),

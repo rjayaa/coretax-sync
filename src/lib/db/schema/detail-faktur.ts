@@ -13,7 +13,7 @@ import { sql } from 'drizzle-orm';
 import { relations } from 'drizzle-orm';
 import { faktur } from './faktur';
 
-export const detailFaktur = mysqlTable('detail_faktur', {
+export const detailFaktur = mysqlTable('T_L_EFW_TAX_DETAIL_FAKTUR', {
   id: varchar('id', { length: 36 }).primaryKey(),
   fakturId: varchar('faktur_id', { length: 36 })
     .notNull()

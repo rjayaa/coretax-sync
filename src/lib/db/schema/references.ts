@@ -2,7 +2,7 @@ import { mysqlTable, varchar, text, timestamp, unique, index } from 'drizzle-orm
 import { sql } from 'drizzle-orm';
 
 // Referensi Kode Transaksi
-export const refKodeTransaksi = mysqlTable('ref_kode_transaksi', {
+export const refKodeTransaksi = mysqlTable('T_L_EFW_TAX_REF_KODE_TRANSAKSI', {
   id: varchar('id', { length: 36 }).primaryKey(),
   kode: varchar('kode', { length: 10 }).notNull().unique(),
   keterangan: text('keterangan').notNull(),
@@ -18,7 +18,7 @@ export const refKodeTransaksi = mysqlTable('ref_kode_transaksi', {
 }));
 
 // Referensi Keterangan Tambahan
-export const refKeteranganTambahan = mysqlTable('ref_keterangan_tambahan', {
+export const refKeteranganTambahan = mysqlTable('T_L_EFW_REF_KETERANGAN_TAMBAHAN', {
   id: varchar('id', { length: 36 }).primaryKey(),
   kode: varchar('kode', { length: 20 }).notNull(),
   keterangan: text('keterangan').notNull(),
@@ -64,7 +64,7 @@ export const refCapFasilitas = mysqlTable('ref_cap_fasilitas', {
 }));
 
 // Referensi Jenis Pembeli
-export const refJenisPembeli = mysqlTable('ref_jenis_pembeli', {
+export const refJenisPembeli = mysqlTable('T_L_EFW_TAX_REF_JENIS_PEMBELI', {
   id: varchar('id', { length: 36 }).primaryKey(),
   kode: varchar('kode', { length: 20 }).notNull().unique(),
   keterangan: text('keterangan').notNull(),
