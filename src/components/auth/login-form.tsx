@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Loader2, User, Lock } from "lucide-react";
+import { Loader2, User, Lock, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -25,6 +25,7 @@ export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -77,6 +78,10 @@ export function LoginForm() {
     }
   }
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -115,12 +120,23 @@ export function LoginForm() {
                 <div className="relative">
                   <Input
                     {...field}
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     disabled={isLoading}
                     placeholder="Password"
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                    className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                   />
                   <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-300 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
               </FormControl>
             </FormItem>
