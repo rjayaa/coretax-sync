@@ -1,39 +1,29 @@
-// // Format utilities
-// export const formatCurrency = (value: string): string => {
-//   // Hapus karakter non-digit
-//   const numericValue = value.replace(/\D/g, '')
-//   if (!numericValue) return ''
-  
-//   // Format dengan pemisah ribuan
-//   return new Intl.NumberFormat('id-ID').format(Number(numericValue))
-// }
-
-// export const formatTaxResult = (value: number): string => {
-//   return new Intl.NumberFormat('id-ID', {
-//     minimumFractionDigits: 2,
-//     maximumFractionDigits: 2
-//   }).format(value)
-// }
-
-
-// export const parseCurrency = (formattedValue: string): number => {
-//   // Hapus semua karakter non-digit
-//   return Number(formattedValue.replace(/[^\d]/g, ''))
-// }
 
 
 // lib/utils/formatCurrency.ts
 
 // Format angka menjadi format currency Indonesia tanpa simbol mata uang
-export const formatCurrency = (value: string): string => {
-  // Hapus karakter non-digit
-  const numericValue = value.replace(/\D/g, '')
-  if (!numericValue) return ''
-  
-  // Format dengan pemisah ribuan
-  return new Intl.NumberFormat('id-ID').format(Number(numericValue))
-}
+// src/lib/utils/formatCurrency.ts
+export const formatCurrency = (value: number | string | null | undefined): string => {
+  if (value === null || value === undefined) {
+    return 'Rp 0';
+  }
 
+  // Konversi ke number jika input string
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+
+  // Handle NaN
+  if (isNaN(numValue)) {
+    return 'Rp 0';
+  }
+
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numValue);
+};
 // Format khusus untuk hasil kalkulasi pajak (dengan 2 desimal)
 export const formatTaxResult = (value: number): string => {
   return new Intl.NumberFormat('id-ID', {

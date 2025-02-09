@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCustomers } from '@/hooks/use-customer';
-import { useInvoiceFilters } from '@/hooks/use-invoice-filters';
 import { useInvoices } from '@/hooks/use-invoice';
+import { useInvoiceFilters } from '@/hooks/use-invoice-filters';
 import { FileText } from 'lucide-react';
 import {
   Card,
@@ -14,19 +14,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
+import { TableContent } from './table-content';
+import { InvoiceFilters } from './invoice-filters';
 
 export const InvoiceTable = () => {
   const router = useRouter();
   const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
+  
+  // Hooks untuk data
   const { data: customers, isLoading: isLoadingCustomers } = useCustomers();
   const { 
     filters,
     updateFilters,
     clearFilters,
   } = useInvoiceFilters();
-  
+
+  // Pindahkan useInvoices ke dalam useEffect
+  const { 
+    data: invoicesData, 
+    isLoading, 
+    error 
+  } = useInvoices(mounted ? filters : undefined); // Hanya jalankan jika mounted
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -35,12 +45,6 @@ export const InvoiceTable = () => {
   if (!mounted) {
     return null;
   }
-
-  const { 
-    data: invoicesData, 
-    isLoading, 
-    error 
-  } = useInvoices(filters);
 
   if (isLoading) {
     return <LoadingState />;
@@ -73,20 +77,18 @@ export const InvoiceTable = () => {
           </div>
 
           <div className="space-y-4">
-            {mounted && (
-              <InvoiceFilters 
-                filters={filters}
-                onFilterChange={updateFilters}
-                customers={customers || []}
-                isLoadingCustomers={isLoadingCustomers}
-                onClearFilters={clearFilters}
-              />
-            )}
+            <InvoiceFilters 
+              filters={filters}
+              onFilterChange={updateFilters}
+              customers={customers || []}
+              isLoadingCustomers={isLoadingCustomers}
+              onClearFilters={clearFilters}
+            />
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <TableContent invoices={invoices} />
+        <TableContent invoices={invoices} onViewDetail={(id) => router.push(`/user/invoices/${id}`)} />
       </CardContent>
     </Card>
   );

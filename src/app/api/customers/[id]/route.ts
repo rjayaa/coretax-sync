@@ -1,7 +1,7 @@
-// src/app/api/customers/[id]/route.ts
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { taxMasterCustomer } from '@/lib/db/schema/tax'
+import { taxDb } from '@/lib/db'
+import { faktur } from '@/lib/db/schema/faktur'
+import { detailFaktur } from '@/lib/db/schema/detail-faktur'
 import { eq } from 'drizzle-orm'
 
 export async function GET(
@@ -9,22 +9,29 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const customer = await db.query.taxMasterCustomer.findFirst({
-      where: eq(taxMasterCustomer.id, params.id)
+    const invoice = await taxDb.query.faktur.findFirst({
+      where: eq(faktur.id, params.id),
+      with: {
+        details: true,
+        kodeTransaksiRef: true,
+        jenisIdPembeliRef: true,
+        keteranganTambahanRef: true,
+        capFasilitasRef: true
+      }
     })
 
-    if (!customer) {
+    if (!invoice) {
       return NextResponse.json(
-        { error: 'Customer not found' },
+        { error: 'Invoice not found' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({ data: customer })
+    return NextResponse.json({ data: invoice })
   } catch (error) {
-    console.error('Error fetching customer:', error)
+    console.error('Error fetching invoice:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch customer' },
+      { error: 'Failed to fetch invoice' },
       { status: 500 }
     )
   }

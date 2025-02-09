@@ -19,16 +19,19 @@ interface InvoiceResponse {
   invoices: Invoice[];
 }
 
-export function useInvoices(filters: InvoiceFilters) {
+// src/hooks/use-invoice.ts
+export function useInvoices(filters?: InvoiceFilters) {
   return useQuery<InvoiceResponse, Error>({
     queryKey: ['invoices', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-      if (filters.status !== 'ALL') params.append('status', filters.status);
-      if (filters.customerId !== 'ALL') params.append('customerId', filters.customerId);
+      if (filters) {
+        if (filters.startDate) params.append('startDate', filters.startDate);
+        if (filters.endDate) params.append('endDate', filters.endDate);
+        if (filters.status !== 'ALL') params.append('status', filters.status);
+        if (filters.customerId !== 'ALL') params.append('customerId', filters.customerId);
+      }
       
       const response = await fetch(`/api/invoices?${params}`);
       if (!response.ok) {
@@ -37,10 +40,10 @@ export function useInvoices(filters: InvoiceFilters) {
       }
       return response.json();
     },
-    staleTime: 1000 * 60 * 5, // Data dianggap fresh selama 5 menit
+    enabled: !!filters, // Query hanya akan dijalankan jika filters ada
+    staleTime: 1000 * 60 * 5,
   });
 }
-
 export function useInvoiceDetail(id: string) {
   return useQuery<any>({
     queryKey: ['invoice', id],
@@ -54,5 +57,6 @@ export function useInvoiceDetail(id: string) {
     enabled: !!id,
   });
 }
+
 
 export type { Invoice, InvoiceResponse };

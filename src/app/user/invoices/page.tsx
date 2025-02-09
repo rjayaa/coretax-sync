@@ -1,7 +1,9 @@
 
 'use client'
 
-import  InvoiceTable  from '@/components/invoice/invoice-table'
+import InvoiceTable from "@/components/invoice/invoice-list/invoice-table"
+
+
 
 export default function InvoicesPage() {
   return (
