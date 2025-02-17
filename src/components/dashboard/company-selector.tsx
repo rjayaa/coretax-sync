@@ -56,7 +56,7 @@ export function CompanySelector() {
       }
 
       localStorage.setItem('selectedCompany', JSON.stringify(companyToStore))
-      router.push('/user/invoices')
+      router.push('/user/faktur')
     } catch (error) {
       console.error('Error selecting company:', error)
     }

@@ -113,3 +113,4 @@ const ErrorState = ({ error }: { error: Error }) => (
 );
 
 export default InvoiceTable;
+
