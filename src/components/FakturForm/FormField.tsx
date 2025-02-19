@@ -1,6 +1,6 @@
+'use client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
 interface FormFieldProps {
   id: string;
   label: string;
@@ -8,6 +8,7 @@ interface FormFieldProps {
   type?: string;
   required?: boolean;
   className?: string;
+  readOnly?: boolean;  // Tambahkan properti readOnly
   [key: string]: any;
 }
 
@@ -18,6 +19,7 @@ export const FormField = ({
   type = 'text',
   required = false,
   className = '',
+  readOnly = false,  // Set default value
   ...props
 }: FormFieldProps) => (
   <div className="space-y-2">
@@ -27,7 +29,8 @@ export const FormField = ({
       name={id}
       type={type}
       required={required}
-      className={`${error ? 'border-red-500' : ''} ${className}`}
+      readOnly={readOnly}
+      className={`${error ? 'border-red-500' : ''} ${readOnly ? 'bg-gray-100' : ''} ${className}`}
       {...props}
     />
     {error && <p className="text-sm text-red-500">{error}</p>}

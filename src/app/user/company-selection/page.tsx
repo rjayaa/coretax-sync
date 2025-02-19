@@ -1,3 +1,4 @@
+
 // src/app/(dashboard)/company-selection/page.tsx
 import { Metadata } from 'next'
 import { CompanySelector } from '@/components/dashboard/company-selector'

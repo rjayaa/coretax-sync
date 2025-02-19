@@ -1,5 +1,6 @@
+'use client';
 // components/FakturForm/index.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +20,17 @@ const FakturForm = ({ onSubmit }: FakturFormProps) => {
   const [fakturData, setFakturData] = useState<FakturData>(INITIAL_FAKTUR_STATE);
   const [errors, setErrors] = useState<Partial<Record<keyof FakturData, string>>>({});
 
+
+useEffect(() => {
+    const selectedCompanyStr = localStorage.getItem('selectedCompany');
+    if (selectedCompanyStr) {
+      const selectedCompany = JSON.parse(selectedCompanyStr);
+      setFakturData(prev => ({ 
+        ...prev, 
+        npwp_penjual: selectedCompany.npwp_company || ''
+      }));
+    }
+  }, []); // Add empty dependency array here
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validateFakturData(fakturData);
@@ -55,14 +67,15 @@ const FakturForm = ({ onSubmit }: FakturFormProps) => {
       </CardHeader>
       <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-               <FormField
-              id="npwp_penjual"
-              label="NPWP Penjual"
-              value={fakturData.npwp_penjual}
-              onChange={handleChange}
-              error={errors.npwp_penjual}
-              required
-            />
+              <FormField
+            id="npwp_penjual"
+            label="NPWP Penjual"
+            value={fakturData.npwp_penjual}
+            onChange={handleChange}
+            error={errors.npwp_penjual}
+            required
+            readOnly={true}
+          />
           {/* Basic Information */}
           <div className="grid grid-cols-2 gap-4">
             <FormField

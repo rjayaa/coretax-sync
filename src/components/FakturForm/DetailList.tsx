@@ -1,9 +1,10 @@
+'use client';
 // components/DetailList/index.tsx
 import React from 'react';
 import { DetailFakturData, FakturData } from '@/types/faktur';
 
 interface DetailListProps {
-    npwp_penjual: FakturData['npwp_penjual'];
+    
   details: DetailFakturData[];
 }
 

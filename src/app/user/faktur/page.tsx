@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import * as XLSX from 'xlsx';
-
 import FakturForm from '@/components/FakturForm';
-
 import { FakturService } from '@/services/fakturService';
 import { FakturData, DetailFakturData } from '@/types/faktur';
 import { generateExcelFile } from '@/utils/excelGenerator';
@@ -18,11 +15,11 @@ export default function FakturPage() {
   const [detailList, setDetailList] = useState<DetailFakturData[]>([]);
   const [fakturList, setFakturList] = useState<(FakturData & { id: string })[]>([]);
 
-  const handleFakturSubmit = async (fakturData: FakturData & { id: string }) => {
+  const handleFakturSubmit = useCallback(async (fakturData: FakturData & { id: string }) => {
     try {
       const savedFaktur = await FakturService.saveFaktur(fakturData);
       setCurrentFaktur(savedFaktur);
-      setFakturList([...fakturList, savedFaktur]);
+      setFakturList(prevList => [...prevList, savedFaktur]);
       toast({
         title: "Berhasil",
         description: "Faktur berhasil disimpan",
@@ -34,12 +31,12 @@ export default function FakturPage() {
         variant: "destructive",
       });
     }
-  };
+  }, []);
 
-  const handleDetailSubmit = async (detailData: DetailFakturData & { id_detail_faktur: string }) => {
+  const handleDetailSubmit = useCallback(async (detailData: DetailFakturData & { id_detail_faktur: string }) => {
     try {
       const savedDetail = await FakturService.saveDetailFaktur(detailData);
-      setDetailList([...detailList, savedDetail]);
+      setDetailList(prevList => [...prevList, savedDetail]);
       toast({
         title: "Berhasil",
         description: "Detail faktur berhasil disimpan",
@@ -51,9 +48,9 @@ export default function FakturPage() {
         variant: "destructive",
       });
     }
-  };
+  }, []);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     try {
       generateExcelFile(fakturList, detailList);
       toast({
@@ -67,7 +64,7 @@ export default function FakturPage() {
         variant: "destructive",
       });
     }
-  };
+  }, [fakturList, detailList]);
 
   return (
     <div className="container mx-auto p-4 space-y-8">
@@ -83,6 +80,7 @@ export default function FakturPage() {
         
         {currentFaktur && (
           <DetailFakturForm 
+            key={currentFaktur.id} // Add key to force re-render on new faktur
             fakturId={currentFaktur.id} 
             onSubmit={handleDetailSubmit} 
           />
@@ -90,7 +88,7 @@ export default function FakturPage() {
       </div>
 
       {detailList.length > 0 && (
-        <DetailList details={detailList} />
+        <DetailList details={detailList}  />
       )}
     </div>
   );

@@ -3,7 +3,7 @@ import { varchar, date, mysqlTable, char } from 'drizzle-orm/mysql-core';
 
 
 export const faktur = mysqlTable('faktur', {
-  id: varchar('id', { length: 255 }).primaryKey(),
+  id: varchar('id', { length: 36 }).primaryKey(),
   npwp_penjual: varchar('npwp_penjual', { length: 255 }),
   tanggal_faktur: date('tanggal_faktur').notNull(),
   jenis_faktur: varchar('jenis_faktur', { length: 50 }).default('Normal'),

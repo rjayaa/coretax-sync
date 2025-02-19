@@ -3,7 +3,7 @@ import { char, varchar, mysqlTable, decimal, int, text } from 'drizzle-orm/mysql
 
 export const fakturDetail = mysqlTable('faktur_detail', {
   id_detail_faktur: char('id_detail_faktur', { length: 36 }).primaryKey(),
-  id_faktur: varchar('id_faktur', { length: 255 }).notNull(),
+  id_faktur: varchar('id_faktur', { length: 36 }).notNull(),
   barang_or_jasa: varchar('barang_or_jasa', { length: 5 }),
   kode_barang_or_jasa: varchar('kode_barang_or_jasa', { length: 25 }),
   nama_barang_or_jasa: text('nama_barang_or_jasa'),
