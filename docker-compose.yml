@@ -1,16 +1,10 @@
-
-version: '3.8'
-
+version: '3'
 services:
-  web:
+  tax-app:
     build: .
+    container_name: tax-app
     ports:
-      - "9988:9988"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+      - "6012:6012"
     env_file:
       - .env
-    environment:
-      - NODE_ENV=development
+    restart: always

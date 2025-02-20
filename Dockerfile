@@ -1,18 +1,19 @@
-FROM node:20-alpine
+FROM node:18-alpine
+
 WORKDIR /app
 
 # Install dependencies first (caching layer)
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package*.json ./
+RUN npm install
 
-# Copy the rest of the application
+# Copy rest of the application
 COPY . .
 
 # Build the application
 RUN npm run build
 
-# Expose the port the app runs on
-EXPOSE 9988
+# Expose the port
+EXPOSE 6012
 
-# Gunakan start untuk production, bukan dev
-CMD ["npm", "run", "start"]
+# Start the application
+CMD ["npm", "start"]
