@@ -13,7 +13,6 @@ const eipPool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_EIP,
-  ssl: process.env.NODE_ENV === 'production' ? {} : undefined,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -25,7 +24,6 @@ const taxPool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_TAX,
-  ssl: process.env.NODE_ENV === 'production' ? {} : undefined,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
