@@ -5,39 +5,14 @@ import { taxMasterCustomer } from '@/lib/db/schema/master';
 import { desc } from 'drizzle-orm';
 
 export async function GET() {
-  try {
-    // Debug: log untuk memastikan koneksi DB
-    // console.log('Fetching customers...');
-
-    const customers = await taxDb
-      .select()
-      .from(taxMasterCustomer)
-      .orderBy(desc(taxMasterCustomer.nama));
-
-    // console.log('Customers fetched:', customers); // Debug log
-
-    if (!customers) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'No customers found',
-        data: [] 
-      });
+    try {
+        const refMasterCustomer = await taxDb.select().from(taxMasterCustomer).orderBy(desc(taxMasterCustomer.id));
+        return NextResponse.json(refMasterCustomer);
+    } catch (error) {
+        console.error('Error fetching kode master customer:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch kode master customer' },
+            { status: 500 }
+        );
     }
-
-    return NextResponse.json({ 
-      success: true,
-      data: customers 
-    });
-
-  } catch (error) {
-    console.error('Error in customers API:', error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to fetch customers',
-        data: [] 
-      },
-      { status: 500 }
-    );
-  }
 }

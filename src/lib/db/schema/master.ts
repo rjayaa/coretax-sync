@@ -5,6 +5,18 @@ import { mysqlTable, varchar, text, timestamp, datetime, boolean, int } from 'dr
 export const taxMasterBarang = mysqlTable('T_L_EFW_TAX_MASTER_BARANG', {
   id: varchar('id', { length: 36 }).primaryKey(),
   goods_services: text('goods_services').notNull(),
+  kode_barang : varchar('kode_barang', { length: 10 }),
+  section: text('section'),
+  chapter: text('chapter'),
+  group: text('group'),
+  english: text('english'),
+  bahasa: text('bahasa')
+});
+// Master Jasa
+export const taxMasterJasa = mysqlTable('T_L_EFW_TAX_MASTER_JASA', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  goods_services: text('goods_services').notNull(),
+  kode_jasa : varchar('kode_jasa', { length: 10 }),
   section: text('section'),
   chapter: text('chapter'),
   group: text('group'),
@@ -40,16 +52,6 @@ export const taxMasterCustomer = mysqlTable('T_L_EFW_TAX_MASTER_CUSTOMER', {
   nomor_telepon: text('nomor_telepon')
 });
 
-// Master Jasa
-export const taxMasterJasa = mysqlTable('T_L_EFW_TAX_MASTER_JASA', {
-  id: varchar('id', { length: 36 }).primaryKey(),
-  goods_services: text('goods_services').notNull(),
-  section: text('section'),
-  chapter: text('chapter'),
-  group: text('group'),
-  english: text('english'),
-  bahasa: text('bahasa')
-});
 
 // User Roles
 export const taxUserRoles = mysqlTable('T_L_EFW_TAX_USER_ROLES', {

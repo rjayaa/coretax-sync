@@ -21,7 +21,7 @@ npwp_penjual: string;
 export interface DetailFakturData {
   id_faktur: string;
   barang_or_jasa: string;
-  kode_barang_jasa: string;
+  kode_barang_or_jasa: string;
   nama_barang_or_jasa: string;
   nama_satuan_ukur: string;
   harga_satuan: string;

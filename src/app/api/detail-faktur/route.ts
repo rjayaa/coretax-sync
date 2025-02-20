@@ -1,4 +1,3 @@
-// src/app/api/detail-faktur/route.ts
 import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { fakturDetail } from '@/lib/db/schema/detail-faktur';
@@ -15,7 +14,7 @@ export async function POST(request: Request) {
       id_faktur: body.id_faktur,
       barang_or_jasa: body.barang_or_jasa,
       kode_barang_or_jasa: body.kode_barang_jasa || null,
-      nama_barang_or_jasa: body.nama_barang_jasa,
+      nama_barang_or_jasa: body.nama_barang_or_jasa || null, // Store the name directly
       nama_satuan_ukur: body.nama_satuan_ukur,
       harga_satuan: parseFloat(body.harga_satuan),
       jumlah_barang: body.barang_or_jasa === 'a' ? parseInt(body.jumlah_barang_jasa) : null,

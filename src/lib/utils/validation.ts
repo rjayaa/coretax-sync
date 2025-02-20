@@ -29,8 +29,8 @@ export const validateDetailData = (data: DetailFakturData) => {
     errors.barang_or_jasa = 'Pilih jenis barang/jasa';
   }
 
-  if (!data.nama_barang_jasa) {
-    errors.nama_barang_jasa = 'Nama barang/jasa harus diisi';
+  if (!data.nama_barang_or_jasa) {
+    errors.nama_barang_or_jasa = 'Nama barang/jasa harus diisi';
   }
 
   if (!data.nama_satuan_ukur) {

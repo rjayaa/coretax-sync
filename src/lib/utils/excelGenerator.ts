@@ -1,5 +1,7 @@
+
 import * as XLSX from 'xlsx';
 import { FakturData, DetailFakturData } from '@/types/faktur';
+
 export const generateExcelFile = (
   fakturList: (FakturData & { id: string })[],
   detailList: DetailFakturData[]
@@ -81,28 +83,22 @@ export const generateExcelFile = (
       'Tarif PPnBM',
       'PPnBM'
     ],
-    ...detailList.map((item, index) => {
-      const jumlahBarangJasa = item.barang_or_jasa === 'a' ? 
-        item.jumlah_barang || item.jumlah_barang_jasa : 
-        item.jumlah_jasa || item.jumlah_barang_jasa;
-
-      return [
-        (index + 1).toString(),
-        item.barang_or_jasa.toUpperCase(),
-        item.kode_barang_or_jasa || '',
-        item.nama_barang_or_jasa,
-        item.nama_satuan_ukur,
-        formatNumber(item.harga_satuan),          // Return number bukan string
-        formatNumber(jumlahBarangJasa),           // Return number bukan string
-        formatNumber(item.total_diskon || item.diskon_persen || 0), 
-        formatNumber(item.dpp),
-        formatNumber(item.dpp_nilai_lain || 0),
-        formatNumber(item.tarif_ppn || 11),
-        formatNumber(item.ppn),
-        0,                                        // Langsung gunakan number
-        0                                         // Langsung gunakan number
-      ];
-    }),
+    ...detailList.map((item, index) => [
+      (index + 1).toString(),
+      item.barang_or_jasa.toUpperCase(),
+      item.kode_barang_or_jasa || '', // Use kode_barang_or_jasa from database
+      item.nama_barang_or_jasa || '',
+      item.nama_satuan_ukur,
+      formatNumber(item.harga_satuan),
+      formatNumber(item.jumlah_barang_jasa),
+      formatNumber(item.total_diskon || 0),
+      formatNumber(item.dpp),
+      formatNumber(item.dpp_nilai_lain || 0),
+      formatNumber(item.tarif_ppn || 11),
+      formatNumber(item.ppn),
+      formatNumber(item.tarif_ppnbm || 0),
+      formatNumber(item.ppnbm || 0)
+    ]),
     ['END']
   ];
 
@@ -123,11 +119,21 @@ export const generateExcelFile = (
   };
 
   // Format numeric columns di DetailFaktur sheet
-  setNumberFormat(detailWs, 1, [5, 6, 7, 8, 9, 10, 11, 12, 13]); // Sesuaikan dengan indeks kolom numeri
+  setNumberFormat(detailWs, 1, [5, 6, 7, 8, 9, 10, 11, 12, 13]); // Sesuaikan dengan indeks kolom numerik
 
-  // Set text format untuk kolom ID TKU
+  // Set text format untuk kolom ID TKU dan kode barang/jasa
   const setTextFormat = (ws: XLSX.WorkSheet, col: string) => {
     for (let i = 3; i < fakturList.length + 3; i++) {
+      const cellRef = `${col}${i}`;
+      if (ws[cellRef]) {
+        ws[cellRef].z = '@';
+      }
+    }
+  };
+
+  // Set text format untuk kolom kode barang/jasa di detail sheet
+  const setDetailTextFormat = (ws: XLSX.WorkSheet, col: string) => {
+    for (let i = 1; i < detailList.length + 2; i++) {
       const cellRef = `${col}${i}`;
       if (ws[cellRef]) {
         ws[cellRef].z = '@';
@@ -138,6 +144,7 @@ export const generateExcelFile = (
   setTextFormat(fakturWs, 'I'); // ID TKU Penjual
   setTextFormat(fakturWs, 'Q'); // ID TKU Pembeli
   fakturWs['C1'].z = '@';      // NPWP Penjual
+  setDetailTextFormat(detailWs, 'C'); // Kode Barang Jasa
 
   // Set column widths
   fakturWs['!cols'] = [

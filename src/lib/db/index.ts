@@ -53,3 +53,4 @@ export * from './schema/master';
 export * from './schema/faktur';
 export * from './schema/detail-faktur';
 export * from './schema/references';
+export * from './schema/index';

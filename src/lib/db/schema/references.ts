@@ -39,7 +39,7 @@ export const refKeteranganTambahan = mysqlTable('T_L_EFW_REF_KETERANGAN_TAMBAHAN
   kodeTransaksiIdx: index('idx_ket_tambahan_kode_transaksi').on(table.kodeTransaksi),
 }));
 
-export const refCapFasilitas = mysqlTable('ref_cap_fasilitas', {
+export const refCapFasilitas = mysqlTable('T_L_EFW_TAX_REF_CAP_FASILITAS', {
   id: varchar('id', { length: 36 }).primaryKey(),
   kode: varchar('kode', { length: 20 }).notNull(),
   keterangan: text('keterangan').notNull(),

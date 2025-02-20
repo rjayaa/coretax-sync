@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
 import { desc, eq, like } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(request: Request) {
   try {
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     }
 
     const result = await taxDb.insert(faktur).values({
-      id: body.id,
+      id: body.id || uuidv4(),
       npwp_penjual: body.npwp_penjual,
       tanggal_faktur: new Date(body.tanggal_faktur),
       jenis_faktur: body.jenis_faktur || 'Normal',

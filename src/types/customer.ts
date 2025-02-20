@@ -1,0 +1,17 @@
+export interface MasterDataCustomer{
+    id: string,
+    no: string,
+    npwp: string,
+    nama: string,
+    jalan: string,
+    blok: string,
+    nomor: string,
+    rt: string,
+    rw: string,
+    kecamatan: string,
+    kelurahan: string,
+    kabupaten: string,
+    propinsi: string,
+    kode_pos: string,
+    nomor_telepon: string,
+}
