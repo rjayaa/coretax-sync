@@ -275,6 +275,21 @@ const FakturForm = ({ onSubmit }: FakturFormProps) => {
                 placeholder="Pilih keterangan tambahan"
               />
             </div>
+              <div className="grid grid-cols-2 gap-4">
+              <SelectField
+                id="cap_fasilitas"
+                label="Cap Fasilitas"
+                value={fakturData.cap_fasilitas}
+                onChange={(value) => handleSelectChange('cap_fasilitas', value)}
+                error={errors.cap_fasilitas}
+                disabled={isLoadingCapFasilitas || !fakturData.kode_transaksi}
+                options={capFasilitasList.map(cf => ({
+                  value: cf.kode,
+                  label: `${cf.kode} - ${cf.keterangan}`
+                }))}
+                placeholder="Pilih cap fasilitas"
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -292,21 +307,7 @@ const FakturForm = ({ onSubmit }: FakturFormProps) => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <SelectField
-                id="cap_fasilitas"
-                label="Cap Fasilitas"
-                value={fakturData.cap_fasilitas}
-                onChange={(value) => handleSelectChange('cap_fasilitas', value)}
-                error={errors.cap_fasilitas}
-                disabled={isLoadingCapFasilitas || !fakturData.kode_transaksi}
-                options={capFasilitasList.map(cf => ({
-                  value: cf.kode,
-                  label: `${cf.kode} - ${cf.keterangan}`
-                }))}
-                placeholder="Pilih cap fasilitas"
-              />
-            </div>
+          
           </div>
 
           <Button type="submit" className="w-full">
