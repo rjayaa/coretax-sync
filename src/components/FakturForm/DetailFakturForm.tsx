@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -16,6 +15,7 @@ import { SelectField } from './SelectField';
 import { SearchModal } from './SearchBarangJasaModal';
 import { Search } from 'lucide-react';
 import { Label } from '../ui/label';
+import { v4 as uuidv4 } from 'uuid';
 
 interface DetailFakturFormProps {
   fakturId: string;
@@ -68,7 +68,7 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
     if (Object.keys(validationErrors).length === 0) {
       onSubmit({
         ...detailData,
-        id_detail_faktur: crypto.randomUUID()
+        id_detail_faktur: uuidv4()
       });
       setDetailData({ ...INITIAL_DETAIL_STATE, id_faktur: fakturId });
       setErrors({});
