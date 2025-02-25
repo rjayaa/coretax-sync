@@ -23,7 +23,7 @@ export const INITIAL_FAKTUR_STATE: FakturData = {
 export const INITIAL_DETAIL_STATE: DetailFakturData = {
   id_faktur: '',
   barang_or_jasa: '',
-  kode_barang_jasa: '',
+  kode_barang_or_jasa: '',
   nama_barang_or_jasa: '',
   nama_satuan_ukur: '',
   harga_satuan: '',

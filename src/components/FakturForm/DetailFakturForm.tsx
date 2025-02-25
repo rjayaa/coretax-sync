@@ -12,6 +12,7 @@ import { useSatuanUkur } from '@/hooks/use-satuan-ukur';
 import { useMasterDataBarang } from '@/hooks/use-master-barang';
 import { useMasterDataJasa } from '@/hooks/use-master-jasa';
 import { SelectField } from './SelectField';
+import { CurrencyField } from './CurrencyField';
 import { SearchModal } from './SearchBarangJasaModal';
 import { Search } from 'lucide-react';
 import { Label } from '../ui/label';
@@ -50,17 +51,6 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
     }
   }, [detailData.harga_satuan, detailData.jumlah_barang_jasa, detailData.total_diskon]);
 
-  // Recalculate PPN when DPP or tarif_ppn changes
-  useEffect(() => {
-    if (detailData.dpp && detailData.tarif_ppn) {
-      const ppn = (parseFloat(detailData.dpp) * parseFloat(detailData.tarif_ppn)) / 100;
-      setDetailData(prev => ({
-        ...prev,
-        ppn: ppn.toString()
-      }));
-    }
-  }, [detailData.dpp, detailData.tarif_ppn]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validateDetailData(detailData);
@@ -95,7 +85,7 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
       
       if (field === 'barang_or_jasa') {
         newData.nama_barang_or_jasa = '';
-        newData.kode_barang_jasa = '';
+        newData.kode_barang_or_jasa = '';
       }
       
       return newData;
@@ -106,6 +96,33 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
     }
   };
 
+  const handleCurrencyChange = (field: keyof DetailFakturData) => (value: string) => {
+    setDetailData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  useEffect(() => {
+    if (detailData.harga_satuan && detailData.jumlah_barang_jasa) {
+      const { dpp, dpp_nilai_lain, ppn } = calculateDetailValues(
+        parseFloat(detailData.harga_satuan),
+        parseFloat(detailData.jumlah_barang_jasa),
+        parseFloat(detailData.total_diskon)
+      );
+
+      setDetailData(prev => ({
+        ...prev,
+        dpp: dpp,
+        dpp_nilai_lain: dpp_nilai_lain,
+        ppn: ppn
+      }));
+    }
+  }, [detailData.harga_satuan, detailData.jumlah_barang_jasa, detailData.total_diskon]);
   return (
     <Card className="w-full">
       <CardHeader>
@@ -131,7 +148,7 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
             <FormField
               id="kode_barang_jasa"
               label="Kode Barang/Jasa"
-              value={detailData.kode_barang_jasa}
+              value={detailData.kode_barang_or_jasa}
               onChange={handleChange}
               maxLength={25}
               readOnly
@@ -174,7 +191,7 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
               setDetailData(prev => ({
                 ...prev,
                 nama_barang_or_jasa: item.bahasa,
-                kode_barang_jasa: detailData.barang_or_jasa === 'a' ? item.kode_barang : item.kode_jasa
+                kode_barang_jasa: detailData.barang_or_jasa,
               }));
               setSearchModalOpen(false);
             }}
@@ -197,17 +214,16 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
               placeholder="Satuan Ukur"
             />
 
-            <FormField
+
+                <CurrencyField
               id="harga_satuan"
               label="Harga Satuan"
-              type="number"
-              step="0.01"
               value={detailData.harga_satuan}
-              onChange={handleChange}
+              onChange={handleCurrencyChange('harga_satuan')}
               error={errors.harga_satuan}
               required
             />
-          </div>
+            </div>
 
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -233,20 +249,20 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField
+        <CurrencyField
               id="dpp"
               label="DPP"
-              type="number"
               value={detailData.dpp}
-              onChange={handleChange}
+              onChange={handleCurrencyChange('dpp')}
+              
             />
 
-            <FormField
+            <CurrencyField
               id="dpp_nilai_lain"
               label="DPP Nilai Lain"
-              type="number"
               value={detailData.dpp_nilai_lain}
-              onChange={handleChange}
+              onChange={handleCurrencyChange('dpp_nilai_lain')}
+              
             />
           </div>
 
@@ -259,12 +275,12 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({ fakturId, onSubmit 
               onChange={handleChange}
             />
 
-            <FormField
+            <CurrencyField
               id="ppn"
               label="PPN"
-              type="number"
               value={detailData.ppn}
-              onChange={handleChange}
+              onChange={handleCurrencyChange('ppn')}
+              
             />
           </div>
 
