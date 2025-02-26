@@ -1,182 +1,6 @@
-// //src/components/FakturTable/TableContent.tsx
-
-// 'use client';
-
-// import React from 'react';
-// import { 
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow
-// } from '@/components/ui/table';
-// import { Button } from '@/components/ui/button';
-// import { Checkbox } from '@/components/ui/checkbox';
-// import { Badge } from '@/components/ui/badge';
-// import { FakturData } from '@/types/faktur';
-// import { Pencil, Eye, AlertCircle, Loader2 } from 'lucide-react';
-// import { formatDate, formatNPWP } from '@/lib/utils/formatter';
-
-// interface TableContentProps {
-//   fakturs: (FakturData & { id: string })[];
-//   loading: boolean;
-//   error: string | null;
-//   selectedIds: Set<string>;
-//   onSelect: (id: string, isSelected: boolean) => void;
-//   onSelectAll: (isSelected: boolean) => void;
-//   onEdit: (id: string) => void;
-// }
-
-// export const TableContent: React.FC<TableContentProps> = ({
-//   fakturs,
-//   loading,
-//   error,
-//   selectedIds,
-//   onSelect,
-//   onSelectAll,
-//   onEdit
-// }) => {
-//   // Calculate if all items are selected
-//   const allSelected = fakturs.length > 0 && fakturs.every(faktur => selectedIds.has(faktur.id));
-//   // Calculate if some items are selected
-//   const someSelected = !allSelected && fakturs.some(faktur => selectedIds.has(faktur.id));
-
-//   // Empty state
-//   if (!loading && !error && fakturs.length === 0) {
-//     return (
-//       <div className="border rounded-md p-8 flex flex-col items-center justify-center">
-//         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-//           <AlertCircle className="h-6 w-6 text-muted-foreground" />
-//         </div>
-//         <h3 className="text-lg font-medium mb-1">Tidak ada data faktur</h3>
-//         <p className="text-sm text-muted-foreground mb-4 text-center">
-//           Belum ada faktur pajak yang dibuat atau data tidak ditemukan.
-//         </p>
-//       </div>
-//     );
-//   }
-
-//   // Loading state
-//   if (loading) {
-//     return (
-//       <div className="border rounded-md p-8 flex flex-col items-center justify-center">
-//         <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-//         <p className="text-sm text-muted-foreground">Memuat data faktur...</p>
-//       </div>
-//     );
-//   }
-
-//   // Error state
-//   if (error) {
-//     return (
-//       <div className="border rounded-md p-8 flex flex-col items-center justify-center">
-//         <AlertCircle className="h-8 w-8 text-destructive mb-4" />
-//         <h3 className="text-lg font-medium mb-1">Gagal memuat data</h3>
-//         <p className="text-sm text-muted-foreground mb-4 text-center">{error}</p>
-//         <Button variant="outline" size="sm">Coba lagi</Button>
-//       </div>
-//     );
-//   }
-
-//   // Render table with data
-//   return (
-//     <div className="border rounded-md">
-//       <Table>
-//         <TableHeader>
-//           <TableRow>
-//             <TableHead className="w-[50px]">
-//               <Checkbox 
-//                 checked={allSelected} 
-//                 // @ts-ignore - tailwind-ui checkbox has indeterminate prop
-//                 indeterminate={someSelected}
-//                 onCheckedChange={(checked) => onSelectAll(!!checked)}
-//                 aria-label="Select all"
-//               />
-//             </TableHead>
-//             {/* <TableHead>No. Faktur</TableHead> */}
-//             <TableHead>Tanggal</TableHead>
-//             <TableHead>Pembeli</TableHead>
-//             <TableHead>NPWP Pembeli</TableHead>
-//             <TableHead>Kode Transaksi</TableHead>
-//             <TableHead>Status</TableHead>
-//             <TableHead className="text-right">Aksi</TableHead>
-//           </TableRow>
-//         </TableHeader>
-//         <TableBody>
-//           {fakturs.map((faktur) => (
-//             <TableRow key={faktur.id}>
-//               <TableCell>
-//                 <Checkbox 
-//                   checked={selectedIds.has(faktur.id)}
-//                   onCheckedChange={(checked) => onSelect(faktur.id, !!checked)}
-//                   aria-label={`Select faktur ${faktur.id}`}
-//                 />
-//               </TableCell>
-//               {/* <TableCell className="font-medium">{faktur.id.substring(0, 8)}...</TableCell> */}
-//               <TableCell>{formatDate(faktur.tanggal_faktur)}</TableCell>
-//               <TableCell>
-//                 <div className="max-w-[200px] truncate" title={faktur.nama_pembeli}>
-//                   {faktur.nama_pembeli}
-//                 </div>
-//               </TableCell>
-//               <TableCell>{formatNPWP(faktur.npwp_nik_pembeli)}</TableCell>
-//               <TableCell>
-//                 <div className="flex items-center">
-//                   <Badge variant="outline" className="font-mono">
-//                     {faktur.kode_transaksi}
-//                   </Badge>
-//                 </div>
-//               </TableCell>
-//               <TableCell>
-//                 <Badge variant={getFakturStatusVariant(faktur.jenis_faktur)}>
-//                   {faktur.jenis_faktur}
-//                 </Badge>
-//               </TableCell>
-//               <TableCell className="text-right">
-//                 <div className="flex justify-end space-x-2">
-//                   <Button 
-//                     variant="ghost" 
-//                     size="icon"
-//                     onClick={() => onEdit(faktur.id)} 
-//                     title="Lihat detail"
-//                   >
-//                     <Eye className="h-4 w-4" />
-//                   </Button>
-//                   <Button 
-//                     variant="ghost" 
-//                     size="icon"
-//                     onClick={() => onEdit(faktur.id)} 
-//                     title="Edit faktur"
-//                   >
-//                     <Pencil className="h-4 w-4" />
-//                   </Button>
-//                 </div>
-//               </TableCell>
-//             </TableRow>
-//           ))}
-//         </TableBody>
-//       </Table>
-//     </div>
-//   );
-// };
-
-// // Helper function to determine badge variant based on faktur status/type
-// function getFakturStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
-//   switch (status) {
-//     case 'Normal':
-//       return 'default';
-//     case 'Pengganti':
-//       return 'secondary';
-//     case 'Batal':
-//       return 'destructive';
-//     default:
-//       return 'outline';
-//   }
-// }
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   Table,
   TableBody,
@@ -223,6 +47,13 @@ export const TableContent: React.FC<TableContentProps> = ({
   const allSelected = fakturs.length > 0 && fakturs.every(faktur => selectedIds.has(faktur.id));
   // Calculate if some items are selected
   const someSelected = !allSelected && fakturs.some(faktur => selectedIds.has(faktur.id));
+  
+  // Reset selection when fakturs change
+  useEffect(() => {
+    // Optional: reset selection when fakturs list changes completely
+    // This is usually helpful when switching pages or applying filters
+    // onSelectAll(false);
+  }, [fakturs]);
 
   // Empty state
   if (!loading && !error && fakturs.length === 0) {
@@ -285,7 +116,12 @@ export const TableContent: React.FC<TableContentProps> = ({
         </TableHeader>
         <TableBody>
           {fakturs.map((faktur) => (
-            <TableRow key={faktur.id} className="hover:bg-muted/30">
+            <TableRow 
+              key={faktur.id} 
+              className={`hover:bg-muted/30 ${
+                selectedIds.has(faktur.id) ? 'bg-muted/30' : ''
+              }`}
+            >
               <TableCell className="py-2">
                 <Checkbox 
                   checked={selectedIds.has(faktur.id)}
@@ -326,9 +162,9 @@ export const TableContent: React.FC<TableContentProps> = ({
                   {faktur.jenis_faktur}
                 </Badge>
               </TableCell>
-              <TableCell className="py-2 text-right">
+              <TableCell className="py-1 text-right">
                 <div className="flex justify-end space-x-1">
-                  <Button 
+                  {/* <Button 
                     variant="ghost" 
                     size="icon"
                     onClick={() => onEdit(faktur.id)} 
@@ -336,7 +172,7 @@ export const TableContent: React.FC<TableContentProps> = ({
                     className="h-7 w-7"
                   >
                     <Eye className="h-3.5 w-3.5" />
-                  </Button>
+                  </Button> */}
                   <Button 
                     variant="ghost" 
                     size="icon"

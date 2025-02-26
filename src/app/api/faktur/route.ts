@@ -102,6 +102,8 @@ export async function POST(request: Request) {
       nomor_dokumen_pembeli: body.nomor_dokumen_pembeli || null,
       nama_pembeli: body.nama_pembeli,
       alamat_pembeli: body.alamat_pembeli,
+      email_pembeli: body.email_pembeli || null,
+      id_tku_pembeli: body.id_tku_pembeli
     });
 
     // Return the body with the same ID that was used for insertion

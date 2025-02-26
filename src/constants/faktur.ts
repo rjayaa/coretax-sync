@@ -27,14 +27,15 @@ export const INITIAL_DETAIL_STATE: DetailFakturData = {
   nama_barang_or_jasa: '',
   nama_satuan_ukur: '',
   harga_satuan: '',
-    jumlah_barang_jasa: '',
-    jumlah_barang: '',
-    jumlah_jasa: '',
+  jumlah_barang_jasa: '',
+  jumlah_barang: '',
+  jumlah_jasa: '',
   total_diskon: '0.00',
   dpp: '0.00',
   dpp_nilai_lain: '0.00',
   tarif_ppn: '12.00',
   ppn: '0.00',
   tarif_ppnbm: '0.00',
-  ppnbm: '0.00'
+  ppnbm: '0.00',
+  id_detail_faktur: ""
 };

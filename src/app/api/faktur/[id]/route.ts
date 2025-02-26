@@ -1,17 +1,17 @@
-// src/app/api/faktur/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
 import { fakturDetail } from '@/lib/db/schema/detail-faktur';
 import { eq } from 'drizzle-orm';
 
+// Fixed version based on Next.js docs
 export async function GET(
-  request: NextRequest, 
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Penggunaan params yang benar, pastikan mengaksesnya dari params
     const id = params.id;
+    console.log(`Getting faktur with ID: ${id}`);
     
     // Fetch faktur data
     const fakturData = await taxDb
@@ -34,11 +34,13 @@ export async function GET(
       .where(eq(fakturDetail.id_faktur, id))
       .execute();
 
+    console.log(`Found faktur with ${detailData.length} details`);
+
     return NextResponse.json({
       faktur: fakturData[0],
       details: detailData
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in faktur GET by ID:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch faktur' },
@@ -48,7 +50,7 @@ export async function GET(
 }
 
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -101,7 +103,7 @@ export async function PATCH(
       .execute();
 
     return NextResponse.json(updatedFaktur[0]);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in faktur PATCH:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update faktur' },
@@ -111,7 +113,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -144,7 +146,7 @@ export async function DELETE(
       .execute();
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in faktur DELETE:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to delete faktur' },

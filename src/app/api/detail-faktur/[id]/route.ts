@@ -1,12 +1,10 @@
-//src/app/api/detail-faktur/[id]/route.ts
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { fakturDetail } from '@/lib/db/schema/detail-faktur';
 import { eq } from 'drizzle-orm';
-// src/app/api/detail-faktur/[id]/route.ts
+
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -74,7 +72,7 @@ export async function PATCH(
       .execute();
 
     return NextResponse.json(updatedDetail[0]);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in detail-faktur PATCH:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update detail faktur' },
@@ -84,7 +82,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -119,7 +117,7 @@ export async function DELETE(
       .execute();
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in detail-faktur DELETE:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to delete detail faktur' },

@@ -19,4 +19,5 @@ export const faktur = mysqlTable('faktur', {
   nomor_dokumen_pembeli: varchar('nomor_dokumen_pembeli', { length: 255 }),
   nama_pembeli: varchar('nama_pembeli', { length: 255 }).notNull(),
   alamat_pembeli: varchar('alamat_pembeli', { length: 255 }).notNull(),
+  id_tku_pembeli: varchar('id_tku_pembeli', { length: 255 }).notNull(),
 });
