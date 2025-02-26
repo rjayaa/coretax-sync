@@ -1,4 +1,6 @@
 
+//src/components/FakturForm/index.tsx
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -51,16 +53,12 @@ const FakturForm = ({ onSubmit }: FakturFormProps) => {
     e.preventDefault();
     const validationErrors = validateFakturData(fakturData);
     
-    if (Object.keys(validationErrors).length === 0) {
-      onSubmit({
-        ...fakturData,
-        id: Math.random().toString(36).substr(2, 9)
-      });
-    } else {
+   if (Object.keys(validationErrors).length === 0) {
+  onSubmit(fakturData);
+}else {
       setErrors(validationErrors);
     }
   };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFakturData(prev => {

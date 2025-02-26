@@ -13,7 +13,7 @@ export interface MasterDataBarang{
 export interface MasterDataJasa{
     id: string;
     goods_services: string;
-    kode_barang: string;
+    kode_jasa: string;
     section: string;
     chapter: string;
     group: string;

@@ -1,20 +1,23 @@
-// app/api/faktur/[id]/route.ts
-import { NextResponse } from 'next/server';
+// src/app/api/faktur/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
 import { fakturDetail } from '@/lib/db/schema/detail-faktur';
 import { eq } from 'drizzle-orm';
-// app/api/faktur/[id]/route.ts
+
 export async function GET(
-  request: Request,
+  request: NextRequest, 
   { params }: { params: { id: string } }
 ) {
   try {
-    // Fetch faktur data - menggunakan id bukan id_faktur
+    // Penggunaan params yang benar, pastikan mengaksesnya dari params
+    const id = params.id;
+    
+    // Fetch faktur data
     const fakturData = await taxDb
       .select()
       .from(faktur)
-      .where(eq(faktur.id, params.id))
+      .where(eq(faktur.id, id))
       .execute();
 
     if (!fakturData || fakturData.length === 0) {
@@ -24,19 +27,19 @@ export async function GET(
       );
     }
 
-    // Fetch detail faktur data - menggunakan id_faktur sesuai foreign key
-    const detailsData = await taxDb
+    // Fetch detail data
+    const detailData = await taxDb
       .select()
       .from(fakturDetail)
-      .where(eq(fakturDetail.id_faktur, params.id))
+      .where(eq(fakturDetail.id_faktur, id))
       .execute();
 
     return NextResponse.json({
       faktur: fakturData[0],
-      details: detailsData
+      details: detailData
     });
   } catch (error) {
-    console.error('Error in faktur GET:', error);
+    console.error('Error in faktur GET by ID:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch faktur' },
       { status: 500 }
@@ -44,54 +47,62 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: Request,
+export async function PATCH(
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const id = params.id;
     const body = await request.json();
 
-    // Validate required fields
-    if (!body.tanggal_faktur || !body.kode_transaksi || 
-        !body.id_tku_penjual || !body.npwp_nik_pembeli || 
-        !body.nama_pembeli || !body.alamat_pembeli) {
+    // Validate faktur exists
+    const existingFaktur = await taxDb
+      .select()
+      .from(faktur)
+      .where(eq(faktur.id, id))
+      .execute();
+
+    if (!existingFaktur || existingFaktur.length === 0) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+        { error: 'Faktur not found' },
+        { status: 404 }
       );
     }
 
-    const result = await taxDb
+    // Update faktur
+    await taxDb
       .update(faktur)
       .set({
-        tanggal_faktur: new Date(body.tanggal_faktur),
-        jenis_faktur: body.jenis_faktur || 'Normal',
+        // Tambahkan properti yang ingin diupdate
+        npwp_penjual: body.npwp_penjual,
+        tanggal_faktur: body.tanggal_faktur ? new Date(body.tanggal_faktur) : undefined,
+        jenis_faktur: body.jenis_faktur,
         kode_transaksi: body.kode_transaksi,
-        keterangan_tambahan: body.keterangan_tambahan || null,
-        dokumen_pendukung: body.dokumen_pendukung || null,
-        referensi: body.referensi || null,
-        cap_fasilitas: body.cap_fasilitas || null,
+        keterangan_tambahan: body.keterangan_tambahan,
+        dokumen_pendukung: body.dokumen_pendukung,
+        referensi: body.referensi,
+        cap_fasilitas: body.cap_fasilitas,
         id_tku_penjual: body.id_tku_penjual,
         npwp_nik_pembeli: body.npwp_nik_pembeli,
-        jenis_id_pembeli: body.jenis_id_pembeli || 'TIN',
-        negara_pembeli: body.negara_pembeli || 'IDN',
-        nomor_dokumen_pembeli: body.nomor_dokumen_pembeli || null,
+        jenis_id_pembeli: body.jenis_id_pembeli,
+        negara_pembeli: body.negara_pembeli,
+        nomor_dokumen_pembeli: body.nomor_dokumen_pembeli,
         nama_pembeli: body.nama_pembeli,
         alamat_pembeli: body.alamat_pembeli,
       })
-      .where(eq(faktur.id, params.id))
+      .where(eq(faktur.id, id))
       .execute();
 
     // Fetch updated data
     const updatedFaktur = await taxDb
       .select()
       .from(faktur)
-      .where(eq(faktur.id, params.id))
+      .where(eq(faktur.id, id))
       .execute();
 
     return NextResponse.json(updatedFaktur[0]);
   } catch (error) {
-    console.error('Error in faktur PUT:', error);
+    console.error('Error in faktur PATCH:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to update faktur' },
       { status: 500 }
@@ -100,23 +111,39 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // First delete all related detail records
+    const id = params.id;
+
+    // Validate faktur exists
+    const existingFaktur = await taxDb
+      .select()
+      .from(faktur)
+      .where(eq(faktur.id, id))
+      .execute();
+
+    if (!existingFaktur || existingFaktur.length === 0) {
+      return NextResponse.json(
+        { error: 'Faktur not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete related detail records first to maintain referential integrity
     await taxDb
       .delete(fakturDetail)
-      .where(eq(fakturDetail.id_faktur, params.id))
+      .where(eq(fakturDetail.id_faktur, id))
       .execute();
 
-    // Then delete the main faktur
+    // Delete the faktur
     await taxDb
       .delete(faktur)
-      .where(eq(faktur.id, params.id))
+      .where(eq(faktur.id, id))
       .execute();
 
-    return NextResponse.json({ message: 'Faktur deleted successfully' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error in faktur DELETE:', error);
     return NextResponse.json(

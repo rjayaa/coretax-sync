@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Validate the required fields
-    if (!body.id || !body.tanggal_faktur || !body.kode_transaksi || 
+    if (!body.tanggal_faktur || !body.kode_transaksi || 
         !body.id_tku_penjual || !body.npwp_nik_pembeli || 
         !body.nama_pembeli || !body.alamat_pembeli) {
       return NextResponse.json(
@@ -81,8 +81,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // Generate a single UUID to use for both insertion and response
+    const newId = uuidv4();
+
+    // Insert with the generated ID
     const result = await taxDb.insert(faktur).values({
-      id: body.id || uuidv4(),
+      id: newId,
       npwp_penjual: body.npwp_penjual,
       tanggal_faktur: new Date(body.tanggal_faktur),
       jenis_faktur: body.jenis_faktur || 'Normal',
@@ -100,7 +104,8 @@ export async function POST(request: Request) {
       alamat_pembeli: body.alamat_pembeli,
     });
 
-    return NextResponse.json(body);
+    // Return the body with the same ID that was used for insertion
+    return NextResponse.json({...body, id: newId});
   } catch (error) {
     console.error('Error in faktur POST:', error);
     return NextResponse.json(

@@ -1,9 +1,10 @@
 // src/lib/db/schema/detail-faktur.ts
 import { char, varchar, mysqlTable, decimal, int, text } from 'drizzle-orm/mysql-core';
+import { faktur } from './faktur';
 
 export const fakturDetail = mysqlTable('faktur_detail', {
   id_detail_faktur: char('id_detail_faktur', { length: 36 }).primaryKey(),
-  id_faktur: varchar('id_faktur', { length: 36 }).notNull(),
+  id_faktur: char('id_faktur', { length: 36 }).notNull().references(() => faktur.id),
   barang_or_jasa: varchar('barang_or_jasa', { length: 5 }),
   kode_barang_or_jasa: varchar('kode_barang_or_jasa', { length: 25 }),
   nama_barang_or_jasa: text('nama_barang_or_jasa'),

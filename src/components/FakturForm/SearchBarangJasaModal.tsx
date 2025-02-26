@@ -12,6 +12,8 @@ interface Item {
   english: string;
   bahasa: string;
   goods_services: string;
+  kode_barang?: string;
+  kode_jasa?: string;
 }
 
 interface SearchModalProps {
@@ -20,20 +22,50 @@ interface SearchModalProps {
   items: Item[];
   onSelect: (item: Item) => void;
   title: string;
+  searchByCode?: boolean;
 }
 
-export function SearchModal({ open, onOpenChange, items, onSelect, title }: SearchModalProps) {
+export function SearchModal({ 
+  open, 
+  onOpenChange, 
+  items, 
+  onSelect, 
+  title,
+  searchByCode = false
+}: SearchModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredItems, setFilteredItems] = useState(items);
 
   useEffect(() => {
-    const filtered = items.filter(item => 
-      item.english.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.bahasa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.goods_services.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    if (!searchTerm.trim()) {
+      setFilteredItems(items);
+      return;
+    }
+
+    const lowerCaseSearch = searchTerm.toLowerCase();
+    const filtered = items.filter(item => {
+      // Log the item properties to debug
+      console.log('Item being filtered:', item, 
+                  'has kode_barang:', item.kode_barang, 
+                  'has kode_jasa:', item.kode_jasa);
+      
+      // Prioritas pencarian berdasarkan kode
+      const kodeMatch = 
+        (item.kode_barang && item.kode_barang.toLowerCase().includes(lowerCaseSearch)) ||
+        (item.kode_jasa && item.kode_jasa.toLowerCase().includes(lowerCaseSearch));
+      
+      if (searchByCode && kodeMatch) return true;
+      
+      // Pencarian berdasarkan nama/deskripsi
+      return (
+        item.english.toLowerCase().includes(lowerCaseSearch) ||
+        item.bahasa.toLowerCase().includes(lowerCaseSearch) ||
+        item.goods_services.toLowerCase().includes(lowerCaseSearch)
+      );
+    });
+    
     setFilteredItems(filtered);
-  }, [searchTerm, items]);
+  }, [searchTerm, items, searchByCode]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,10 +78,11 @@ export function SearchModal({ open, onOpenChange, items, onSelect, title }: Sear
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Cari berdasarkan nama atau kode..."
+              placeholder={searchByCode ? "Cari berdasarkan kode..." : "Cari berdasarkan nama atau kode..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
+              autoFocus
             />
           </div>
         </div>
@@ -72,20 +105,20 @@ export function SearchModal({ open, onOpenChange, items, onSelect, title }: Sear
                 >
                   <div className="flex gap-4 w-full">
                     <div className="shrink-0 flex items-start pt-1">
-                      <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm whitespace-nowrap">
-                        {item.goods_services}
+                      <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm whitespace-nowrap font-medium">
+                        {item.kode_barang || item.kode_jasa || item.goods_services}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="space-y-2">
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm font-medium">
                           <div className="line-clamp-2 hover:line-clamp-none transition-all">
-                            {item.english}
+                            {item.bahasa}
                           </div>
                         </div>
                         <div className="text-sm text-muted-foreground">
                           <div className="line-clamp-2 hover:line-clamp-none transition-all">
-                            {item.bahasa}
+                            {item.english}
                           </div>
                         </div>
                       </div>
