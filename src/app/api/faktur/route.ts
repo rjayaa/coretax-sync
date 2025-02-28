@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
-import { desc, eq, like } from 'drizzle-orm';
+import { desc, eq, like, and, gte, lte, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(request: Request) {
@@ -13,34 +13,152 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search');
+    
+    // Date filter parameters
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const year = searchParams.get('year');
+    const month = searchParams.get('month');
     
     // Base query
     let query = taxDb.select().from(faktur);
     
-    // Apply filters if they exist
+    // Apply search filter if it exists
     if (search) {
       query = query.where(
         like(faktur.nama_pembeli, `%${search}%`)
       );
     }
     
+    // Apply date filters with different scenarios
     if (startDate && endDate) {
+      // Case 1: Both start and end dates are provided (date range)
       query = query.where(
-        faktur.tanggal_faktur >= new Date(startDate) &&
-        faktur.tanggal_faktur <= new Date(endDate)
+        and(
+          gte(faktur.tanggal_faktur, new Date(startDate)),
+          lte(faktur.tanggal_faktur, new Date(endDate))
+        )
+      );
+    } else if (year && month) {
+      // Case 2: Year and month are provided
+      const startOfMonth = new Date(`${year}-${month}-01`);
+      
+      // Calculate the end of month date
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const endOfMonth = new Date(`${year}-${month}-${lastDay}`);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      query = query.where(
+        and(
+          gte(faktur.tanggal_faktur, startOfMonth),
+          lte(faktur.tanggal_faktur, endOfMonth)
+        )
+      );
+    } else if (year) {
+      // Case 3: Only year is provided (entire year)
+      const startOfYear = new Date(`${year}-01-01`);
+      const endOfYear = new Date(`${year}-12-31`);
+      endOfYear.setHours(23, 59, 59, 999);
+      
+      query = query.where(
+        and(
+          gte(faktur.tanggal_faktur, startOfYear),
+          lte(faktur.tanggal_faktur, endOfYear)
+        )
+      );
+    } else if (month) {
+      // Case 4: Only month is provided (current year's month)
+      const currentYear = new Date().getFullYear();
+      const startOfMonth = new Date(`${currentYear}-${month}-01`);
+      
+      // Calculate the end of month date
+      const lastDay = new Date(currentYear, parseInt(month), 0).getDate();
+      const endOfMonth = new Date(`${currentYear}-${month}-${lastDay}`);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      query = query.where(
+        and(
+          gte(faktur.tanggal_faktur, startOfMonth),
+          lte(faktur.tanggal_faktur, endOfMonth)
+        )
+      );
+    } else if (startDate) {
+      // Case 5: Only start date is provided (from this date onwards)
+      query = query.where(
+        gte(faktur.tanggal_faktur, new Date(startDate))
+      );
+    } else if (endDate) {
+      // Case 6: Only end date is provided (until this date)
+      query = query.where(
+        lte(faktur.tanggal_faktur, new Date(endDate))
       );
     }
     
-    // Calculate offset
-    const offset = (page - 1) * limit;
+    // Get total count for pagination with the same filters
+    const countQuery = taxDb.select({ count: sql`COUNT(*)` }).from(faktur);
     
-    // Get total count for pagination
-    const totalRows = await taxDb
-      .select({ count: faktur.id })
-      .from(faktur)
-      .execute();
+    // Apply the same filters to the count query
+    if (search) {
+      countQuery.where(like(faktur.nama_pembeli, `%${search}%`));
+    }
+    
+    // Apply the same date filters to the count query
+    if (startDate && endDate) {
+      countQuery.where(
+        and(
+          gte(faktur.tanggal_faktur, new Date(startDate)),
+          lte(faktur.tanggal_faktur, new Date(endDate))
+        )
+      );
+    } else if (year && month) {
+      const startOfMonth = new Date(`${year}-${month}-01`);
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const endOfMonth = new Date(`${year}-${month}-${lastDay}`);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      countQuery.where(
+        and(
+          gte(faktur.tanggal_faktur, startOfMonth),
+          lte(faktur.tanggal_faktur, endOfMonth)
+        )
+      );
+    } else if (year) {
+      const startOfYear = new Date(`${year}-01-01`);
+      const endOfYear = new Date(`${year}-12-31`);
+      endOfYear.setHours(23, 59, 59, 999);
+      
+      countQuery.where(
+        and(
+          gte(faktur.tanggal_faktur, startOfYear),
+          lte(faktur.tanggal_faktur, endOfYear)
+        )
+      );
+    } else if (month) {
+      const currentYear = new Date().getFullYear();
+      const startOfMonth = new Date(`${currentYear}-${month}-01`);
+      const lastDay = new Date(currentYear, parseInt(month), 0).getDate();
+      const endOfMonth = new Date(`${currentYear}-${month}-${lastDay}`);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      countQuery.where(
+        and(
+          gte(faktur.tanggal_faktur, startOfMonth),
+          lte(faktur.tanggal_faktur, endOfMonth)
+        )
+      );
+    } else if (startDate) {
+      countQuery.where(gte(faktur.tanggal_faktur, new Date(startDate)));
+    } else if (endDate) {
+      countQuery.where(lte(faktur.tanggal_faktur, new Date(endDate)));
+    }
+    
+    // Execute count query
+    const totalCount = await countQuery.execute();
+    const total = totalCount[0]?.count || 0;
+    
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+    const totalPages = Math.ceil(Number(total) / limit);
     
     // Get data with pagination
     const fakturs = await query
@@ -52,10 +170,10 @@ export async function GET(request: Request) {
     return NextResponse.json({
       fakturs,
       pagination: {
-        total: totalRows.length,
+        total: Number(total),
         page,
         limit,
-        totalPages: Math.ceil(totalRows.length / limit)
+        totalPages
       }
     });
   } catch (error) {
@@ -67,6 +185,7 @@ export async function GET(request: Request) {
   }
 }
 
+// POST method remains unchanged
 export async function POST(request: Request) {
   try {
     const body = await request.json();

@@ -164,15 +164,7 @@ export const TableContent: React.FC<TableContentProps> = ({
               </TableCell>
               <TableCell className="py-1 text-right">
                 <div className="flex justify-end space-x-1">
-                  {/* <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => onEdit(faktur.id)} 
-                    title="Lihat detail"
-                    className="h-7 w-7"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button> */}
+              
                   <Button 
                     variant="ghost" 
                     size="icon"

@@ -445,4 +445,4 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
   );
 };
 
-export default FakturForm;
+export default FakturForm;``

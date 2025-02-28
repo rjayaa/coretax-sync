@@ -8,6 +8,8 @@ interface PaginationParams {
   search?: string;
   startDate?: string;
   endDate?: string;
+  year?: string;
+  month?: string;
 }
 
 interface PaginatedResponse<T> {
@@ -24,7 +26,6 @@ interface FakturWithDetails {
   faktur: FakturData & { id: string };
   details: DetailFakturData[];
 }
-
 export class FakturService {
   // Fungsi untuk mengkonversi nilai ke number dengan aman (mencegah NaN)
   private static safeNumber(value: any, defaultValue = 0): number | null {
@@ -153,20 +154,48 @@ export class FakturService {
   }
 
   // Get fakturs with pagination and filters
-  static async getFakturs(params: PaginationParams = {}): Promise<PaginatedResponse<FakturData & { id: string }>> {
-    const { page = 1, limit = 10, search = '', startDate, endDate } = params;
+   static async getFakturs(params: PaginationParams = {}): Promise<PaginatedResponse<FakturData & { id: string }>> {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = '', 
+      startDate, 
+      endDate,
+      year,
+      month
+    } = params;
     
+    // Start building URL with required parameters
     let url = `/api/faktur?page=${page}&limit=${limit}`;
     
+    // Add search if provided
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
     }
     
+    // Handle date filtering scenarios
     if (startDate && endDate) {
+      // Case 1: Full date range
       url += `&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+    } else if (year && month) {
+      // Case 2: Specific year and month
+      url += `&year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`;
+    } else if (year) {
+      // Case 3: Specific year only
+      url += `&year=${encodeURIComponent(year)}`;
+    } else if (month) {
+      // Case 4: Specific month only (current year)
+      url += `&month=${encodeURIComponent(month)}`;
+    } else if (startDate) {
+      // Case 5: From start date only
+      url += `&startDate=${encodeURIComponent(startDate)}`;
+    } else if (endDate) {
+      // Case 6: Until end date only
+      url += `&endDate=${encodeURIComponent(endDate)}`;
     }
     
     try {
+      console.log('Fetching fakturs with URL:', url);
       const response = await fetch(url);
       
       if (!response.ok) {
