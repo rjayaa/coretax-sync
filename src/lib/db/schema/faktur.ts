@@ -1,5 +1,5 @@
 // src/lib/db/schema/faktur.ts
-import { varchar, date, mysqlTable, char } from 'drizzle-orm/mysql-core';
+import { varchar, date, mysqlTable, char,mysqlEnum } from 'drizzle-orm/mysql-core';
 
 
 export const faktur = mysqlTable('faktur', {
@@ -20,4 +20,8 @@ export const faktur = mysqlTable('faktur', {
   nama_pembeli: varchar('nama_pembeli', { length: 255 }).notNull(),
   alamat_pembeli: varchar('alamat_pembeli', { length: 255 }).notNull(),
   id_tku_pembeli: varchar('id_tku_pembeli', { length: 255 }).notNull(),
+  nomor_faktur_pajak: varchar('nomor_faktur_pajak', { length: 255 }).notNull(),
+  status_faktur: mysqlEnum('status_faktur', ['DRAFT', 'APPROVED', 'AMENDED', 'CANCELLED'])
+    .notNull()
+    .default('DRAFT'),
 });
