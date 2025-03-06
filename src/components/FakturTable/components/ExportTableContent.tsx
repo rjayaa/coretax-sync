@@ -117,8 +117,8 @@ export const ExportTableContent: React.FC<ExportTableContentProps> = ({
   }
 
   return (
-    <div className="border rounded-md">
-      <Table>
+    <div className="border rounded-md overflow-x-auto">
+      <Table className='min-w-max'>
         <TableHeader>
           <TableRow>
             <TableHead className="w-10">

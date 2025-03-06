@@ -50,7 +50,7 @@ export async function GET(
     );
   }
 }
-
+// Di app/api/faktur/[id]/route.ts - update PATCH handler
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
@@ -77,7 +77,7 @@ export async function PATCH(
     await taxDb
       .update(faktur)
       .set({
-        // Tambahkan properti yang ingin diupdate
+        // Properti yang sudah ada
         npwp_penjual: body.npwp_penjual,
         tanggal_faktur: body.tanggal_faktur ? new Date(body.tanggal_faktur) : undefined,
         jenis_faktur: body.jenis_faktur,
@@ -93,6 +93,10 @@ export async function PATCH(
         nomor_dokumen_pembeli: body.nomor_dokumen_pembeli,
         nama_pembeli: body.nama_pembeli,
         alamat_pembeli: body.alamat_pembeli,
+        id_tku_pembeli: body.id_tku_pembeli,
+        
+        // Tambahkan field nomor_faktur_pajak
+        nomor_faktur_pajak: body.nomor_faktur_pajak
       })
       .where(eq(faktur.id, id))
       .execute();

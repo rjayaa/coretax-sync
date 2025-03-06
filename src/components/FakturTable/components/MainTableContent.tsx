@@ -106,8 +106,8 @@ export const MainTableContent: React.FC<MainTableContentProps> = ({
   }
 
   return (
-    <div className="border rounded-md">
-      <Table>
+    <div className="border rounded-md overflow-x-auto">
+      <Table className='min-w-max'>
         <TableHeader>
           <TableRow>
             <TableHead>NPWP Pembeli</TableHead>

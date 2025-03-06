@@ -352,21 +352,86 @@ static async getFakturWithDetails(fakturId: string): Promise<FakturWithDetails> 
   }
 }
   // Update an existing faktur - with improved field handling and debugging
+// static async updateFaktur(id: string, fakturData: Partial<FakturData>): Promise<FakturData & { id: string }> {
+//   try {
+//     console.log(`Updating faktur with ID: ${id}`);
+//     console.log('Faktur update data:', fakturData);
+    
+//     // Ensure all properties are included in the request
+//     const updateData = {
+//       npwp_penjual: fakturData.npwp_penjual || '',
+//       tanggal_faktur: fakturData.tanggal_faktur || '',
+//       jenis_faktur: fakturData.jenis_faktur || 'Normal',
+//       kode_transaksi: fakturData.kode_transaksi || '',
+//       keterangan_tambahan: fakturData.keterangan_tambahan || '', // Ensure this is included
+//       dokumen_pendukung: fakturData.dokumen_pendukung || '',
+//       referensi: fakturData.referensi || '',
+//       cap_fasilitas: fakturData.cap_fasilitas || '', // Ensure this is included
+//       id_tku_penjual: fakturData.id_tku_penjual || '',
+//       npwp_nik_pembeli: fakturData.npwp_nik_pembeli || '',
+//       jenis_id_pembeli: fakturData.jenis_id_pembeli || 'TIN',
+//       negara_pembeli: fakturData.negara_pembeli || 'IDN',
+//       nomor_dokumen_pembeli: fakturData.nomor_dokumen_pembeli || '',
+//       nama_pembeli: fakturData.nama_pembeli || '',
+//       alamat_pembeli: fakturData.alamat_pembeli || '',
+//       id_tku_pembeli: fakturData.id_tku_pembeli || '', // Ensure this is included
+      
+//     };
+    
+//     const response = await fetch(`/api/faktur/${id}`, {
+//       method: 'PATCH',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify(updateData),
+//     });
+
+//     if (!response.ok) {
+//       const errorData = await response.json();
+//       console.error('Error response from update faktur API:', errorData);
+//       throw new Error(errorData.error || 'Failed to update faktur');
+//     }
+
+//     const responseData = await response.json();
+//     console.log('Update faktur response:', responseData);
+    
+//     // Ensure the response has all expected fields
+//     const result = {
+//       ...responseData,
+//       id: responseData.id || id,
+//       // Ensure these fields exist in the result
+//       keterangan_tambahan: responseData.keterangan_tambahan || fakturData.keterangan_tambahan || '',
+//       cap_fasilitas: responseData.cap_fasilitas || fakturData.cap_fasilitas || '',
+//       id_tku_pembeli: responseData.id_tku_pembeli || fakturData.id_tku_pembeli || ''
+//     };
+    
+//     // Format date if needed
+//     if (typeof result.tanggal_faktur === 'string' && result.tanggal_faktur.includes('T')) {
+//       result.tanggal_faktur = result.tanggal_faktur.split('T')[0];
+//     }
+    
+//     return result;
+//   } catch (error) {
+//     console.error(`Error updating faktur with ID ${id}:`, error);
+//     throw error;
+//   }
+  // }
+  // Perbarui method di FakturService.ts
 static async updateFaktur(id: string, fakturData: Partial<FakturData>): Promise<FakturData & { id: string }> {
   try {
     console.log(`Updating faktur with ID: ${id}`);
     console.log('Faktur update data:', fakturData);
     
-    // Ensure all properties are included in the request
+    // Pastikan semua properti termasuk nomor_faktur_pajak dimasukkan
     const updateData = {
       npwp_penjual: fakturData.npwp_penjual || '',
       tanggal_faktur: fakturData.tanggal_faktur || '',
       jenis_faktur: fakturData.jenis_faktur || 'Normal',
       kode_transaksi: fakturData.kode_transaksi || '',
-      keterangan_tambahan: fakturData.keterangan_tambahan || '', // Ensure this is included
+      keterangan_tambahan: fakturData.keterangan_tambahan || '', 
       dokumen_pendukung: fakturData.dokumen_pendukung || '',
       referensi: fakturData.referensi || '',
-      cap_fasilitas: fakturData.cap_fasilitas || '', // Ensure this is included
+      cap_fasilitas: fakturData.cap_fasilitas || '', 
       id_tku_penjual: fakturData.id_tku_penjual || '',
       npwp_nik_pembeli: fakturData.npwp_nik_pembeli || '',
       jenis_id_pembeli: fakturData.jenis_id_pembeli || 'TIN',
@@ -374,8 +439,10 @@ static async updateFaktur(id: string, fakturData: Partial<FakturData>): Promise<
       nomor_dokumen_pembeli: fakturData.nomor_dokumen_pembeli || '',
       nama_pembeli: fakturData.nama_pembeli || '',
       alamat_pembeli: fakturData.alamat_pembeli || '',
-      id_tku_pembeli: fakturData.id_tku_pembeli || '', // Ensure this is included
+      id_tku_pembeli: fakturData.id_tku_pembeli || '',
       
+      // Tambahkan field nomor_faktur_pajak
+      nomor_faktur_pajak: fakturData.nomor_faktur_pajak || ''
     };
     
     const response = await fetch(`/api/faktur/${id}`, {
@@ -395,17 +462,19 @@ static async updateFaktur(id: string, fakturData: Partial<FakturData>): Promise<
     const responseData = await response.json();
     console.log('Update faktur response:', responseData);
     
-    // Ensure the response has all expected fields
+    // Pastikan semua field ada di hasil
     const result = {
       ...responseData,
       id: responseData.id || id,
-      // Ensure these fields exist in the result
       keterangan_tambahan: responseData.keterangan_tambahan || fakturData.keterangan_tambahan || '',
       cap_fasilitas: responseData.cap_fasilitas || fakturData.cap_fasilitas || '',
-      id_tku_pembeli: responseData.id_tku_pembeli || fakturData.id_tku_pembeli || ''
+      id_tku_pembeli: responseData.id_tku_pembeli || fakturData.id_tku_pembeli || '',
+      
+      // Pastikan nomor_faktur_pajak ada di hasil
+      nomor_faktur_pajak: responseData.nomor_faktur_pajak || fakturData.nomor_faktur_pajak || ''
     };
     
-    // Format date if needed
+    // Format tanggal jika perlu
     if (typeof result.tanggal_faktur === 'string' && result.tanggal_faktur.includes('T')) {
       result.tanggal_faktur = result.tanggal_faktur.split('T')[0];
     }

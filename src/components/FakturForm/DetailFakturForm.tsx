@@ -332,10 +332,7 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({
                     <Search className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
-                <Button type="button" variant="outline" className="px-3">
-                  <Download className="h-4 w-4" />
-                  <span className="sr-only">Unduh Kode</span>
-                </Button>
+             
               </div>
             </div>
 
@@ -419,8 +416,6 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({
                 id="total_harga"
                 value={totalPrice.toString()}
                 onChange={() => { } }
-                readOnly
-                className="bg-gray-50" 
                 label={''}
               />
             </div>
@@ -451,8 +446,6 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({
                   label="DPP"
                   value={detailData.dpp}
                   onChange={handleCurrencyChange('dpp')}
-                  readOnly
-                  className="bg-gray-50"
                 />
               </div>
             </div>
@@ -462,8 +455,7 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({
               label="DPP Nilai Lain"
               value={detailData.dpp_nilai_lain}
               onChange={handleCurrencyChange('dpp_nilai_lain')}
-              readOnly
-              className="bg-gray-50"
+              
             />
             
             <div className="space-y-2">
@@ -483,8 +475,6 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({
               label="PPN"
               value={detailData.ppn}
               onChange={handleCurrencyChange('ppn')}
-              readOnly
-              className="bg-gray-50"
             />
 
             <div className="space-y-2">
@@ -506,8 +496,7 @@ const DetailFakturForm: React.FC<DetailFakturFormProps> = ({
               label="PPnBM"
               value={detailData.ppnbm}
               onChange={handleCurrencyChange('ppnbm')}
-              readOnly
-              className="bg-gray-50"
+         
             />
           </div>
         </div>

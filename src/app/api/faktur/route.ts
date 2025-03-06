@@ -222,6 +222,7 @@ export async function POST(request: Request) {
       nama_pembeli: body.nama_pembeli,
       alamat_pembeli: body.alamat_pembeli,
       email_pembeli: body.email_pembeli || null,
+      nomor_faktur_pajak: body.nomor_faktur_pajak,
       id_tku_pembeli: body.id_tku_pembeli
     });
 
