@@ -2,7 +2,7 @@
 import { char, varchar, mysqlTable, decimal, int, text } from 'drizzle-orm/mysql-core';
 import { faktur } from './faktur';
 
-export const fakturDetail = mysqlTable('faktur_detail', {
+export const fakturDetail = mysqlTable('T_L_EFW_TAX_FAKTUR_DETAIL_MASTER', {
   id_detail_faktur: char('id_detail_faktur', { length: 36 }).primaryKey(),
   id_faktur: char('id_faktur', { length: 36 }).notNull().references(() => faktur.id),
   barang_or_jasa: varchar('barang_or_jasa', { length: 5 }),

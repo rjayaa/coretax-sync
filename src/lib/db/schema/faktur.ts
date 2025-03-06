@@ -2,7 +2,7 @@
 import { varchar, date, mysqlTable, char,mysqlEnum } from 'drizzle-orm/mysql-core';
 
 
-export const faktur = mysqlTable('faktur', {
+export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR_MASTER', {
   id: varchar('id', { length: 36 }).primaryKey(),
   npwp_penjual: varchar('npwp_penjual', { length: 255 }),
   tanggal_faktur: date('tanggal_faktur').notNull(),
