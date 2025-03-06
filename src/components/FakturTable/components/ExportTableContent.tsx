@@ -2,11 +2,22 @@ import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { FakturData, DetailFakturData } from '@/types/faktur';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, AlertCircle, Pencil } from 'lucide-react';
+import { Loader2, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate, getMonth, getYear } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Extended interface to include faktur details
 interface FakturWithDetails extends FakturData {
@@ -14,7 +25,7 @@ interface FakturWithDetails extends FakturData {
   details?: DetailFakturData[];
 }
 
-interface TableContentProps {
+interface ExportTableContentProps {
   fakturs: FakturWithDetails[];
   loading: boolean;
   error: string | null;
@@ -22,16 +33,18 @@ interface TableContentProps {
   onSelect: (id: string, selected: boolean) => void;
   onSelectAll: (selected: boolean) => void;
   onEdit: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
 }
 
-export const TableContent: React.FC<TableContentProps> = ({
+export const ExportTableContent: React.FC<ExportTableContentProps> = ({
   fakturs,
   loading,
   error,
   selectedIds,
   onSelect,
   onSelectAll,
-  onEdit
+  onEdit,
+  onDelete
 }) => {
   // Calculate "all selected" state
   const allSelected = fakturs.length > 0 && fakturs.every(faktur => selectedIds.has(faktur.id));
@@ -124,12 +137,12 @@ export const TableContent: React.FC<TableContentProps> = ({
             <TableHead>Masa Pajak</TableHead>
             <TableHead>Tahun</TableHead>
             <TableHead>Status Faktur</TableHead>
-            <TableHead className="text-right">Harga Jual/Penggantian/DPP</TableHead>
-            <TableHead className="text-right">DPP Nilai Lain</TableHead>
-            <TableHead className="text-right">PPN</TableHead>
-            <TableHead className="text-right">PPnBM</TableHead>
+            <TableHead >Harga Jual/DPP</TableHead>
+            <TableHead >DPP Nilai Lain</TableHead>
+            <TableHead >PPN</TableHead>
+            <TableHead >PPnBM</TableHead>
             <TableHead>Referensi</TableHead>
-            <TableHead className="w-10">Aksi</TableHead>
+            <TableHead className="text-center">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -177,15 +190,47 @@ export const TableContent: React.FC<TableContentProps> = ({
               </TableCell>
               <TableCell>{faktur.referensi}</TableCell>
               <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onEdit(faktur.id)}
-                  className="h-8 w-8"
-                >
-                  <Pencil className="h-4 w-4" />
-                  <span className="sr-only">Edit</span>
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(faktur.id)}
+                    className="h-8 w-8"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
+                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Hapus</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Konfirmasi Hapus Faktur</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Apakah Anda yakin ingin menghapus faktur ini? Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction 
+                          className="bg-destructive hover:bg-destructive/90"
+                          onClick={() => onDelete(faktur.id)}
+                        >
+                          Hapus
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </TableCell>
             </TableRow>
           ))}
