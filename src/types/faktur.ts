@@ -18,6 +18,7 @@ npwp_penjual: string;
   id_tku_pembeli: string;
   nomor_faktur_pajak: string;
   status_faktur: string;
+  tipe_transaksi: string;
 }
 
 export interface DetailFakturData {

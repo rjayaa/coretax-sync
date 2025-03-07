@@ -17,7 +17,7 @@ export const refKodeTransaksi = mysqlTable('T_L_EFW_TAX_REF_KODE_TRANSAKSI', {
   kodeIdx: unique('uk_kode').on(table.kode),
 }));
 
-export const refKeteranganTambahan = mysqlTable('T_L_EFW_REF_KETERANGAN_TAMBAHAN', {
+export const refKeteranganTambahan = mysqlTable('T_L_EFW_TAX_REF_KETERANGAN_TAMBAHAN', {
   id: varchar('id', { length: 36 }).primaryKey(),
   kode: varchar('kode', { length: 20 }).notNull(),
   keterangan: text('keterangan').notNull(),

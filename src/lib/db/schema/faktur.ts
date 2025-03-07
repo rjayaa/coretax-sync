@@ -24,4 +24,5 @@ export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR_MASTER', {
   status_faktur: mysqlEnum('status_faktur', ['DRAFT', 'APPROVED', 'AMENDED', 'CANCELLED'])
     .notNull()
     .default('DRAFT'),
+  tipe_transaksi: mysqlEnum('tipe_transaksi', ['Uang Muka', 'Pelunasan'])
 });
