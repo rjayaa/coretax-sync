@@ -73,29 +73,6 @@ export const DetailList: React.FC<DetailListProps> = ({
               <p className="text-sm">NPWP: {faktur.npwp_nik_pembeli}</p>
               <p className="text-sm">Alamat: {faktur.alamat_pembeli || '-'}</p>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Informasi Faktur</h3>
-              <p className="text-sm">No. Faktur: {faktur.nomor_faktur_pajak}</p>
-              <p className="text-sm">Tanggal: {formatDate(faktur.tanggal_faktur)}</p>
-              <p className="text-sm">Masa Pajak: {getMonth(faktur.tanggal_faktur)} {getYear(faktur.tanggal_faktur)}</p>
-              <p className="text-sm">Kode Transaksi: {faktur.kode_transaksi}</p>
-              <p className="text-sm mt-1">
-                <Badge 
-                  variant={faktur.status_faktur === 'APPROVED' ? "success" : 
-                          faktur.status_faktur === 'PENDING' ? "warning" : "default"}
-                >
-                  {faktur.status_faktur}
-                </Badge>
-              </p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground">Nilai Faktur</h3>
-              <p className="text-sm">Harga Jual/DPP: {formatCurrency(totalDPP)}</p>
-              <p className="text-sm">DPP Nilai Lain: {formatCurrency(totalDPPNilaiLain)}</p>
-              <p className="text-sm">PPN: {formatCurrency(totalPPN)}</p>
-              <p className="text-sm">PPnBM: {formatCurrency(totalPPnBM)}</p>
-              <p className="text-sm font-bold mt-1">Total: {formatCurrency(grandTotal)}</p>
-            </div>
           </div>
           {faktur.referensi && (
             <div className="mt-2">
