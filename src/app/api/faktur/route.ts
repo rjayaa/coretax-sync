@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { taxDb } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
-import { desc, eq, like, and, gte, lte, sql } from 'drizzle-orm';
+import { desc, eq, like, and, gte, lte, sql, or } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(request: Request) {
@@ -26,7 +26,10 @@ export async function GET(request: Request) {
     // Apply search filter if it exists
     if (search) {
       query = query.where(
-        like(faktur.nama_pembeli, `%${search}%`)
+        or(
+          like(faktur.referensi, `%${search}%`),
+          like(faktur.nama_pembeli, `%${search}%`),
+        ) 
       );
     }
     
@@ -96,11 +99,6 @@ export async function GET(request: Request) {
     
     // Get total count for pagination with the same filters
     const countQuery = taxDb.select({ count: sql`COUNT(*)` }).from(faktur);
-    
-    // Apply the same filters to the count query
-    if (search) {
-      countQuery.where(like(faktur.nama_pembeli, `%${search}%`));
-    }
     
     // Apply the same date filters to the count query
     if (startDate && endDate) {

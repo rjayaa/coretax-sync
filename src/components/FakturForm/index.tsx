@@ -911,6 +911,8 @@
 // };
 
 // export default FakturForm;
+
+
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -1189,6 +1191,40 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
                   </Select>
                 </div>
               </div>
+              <div className="flex flex-wrap gap-3">
+      </div>
+
+      {/* Tambahkan field Nomor Faktur Pajak */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex-1 min-w-[250px]">
+          <FormField
+            id="nomor_faktur_pajak"
+            label="Nomor Faktur Pajak"
+            value={fakturData.nomor_faktur_pajak}
+            onChange={handleChange}
+            placeholder="Masukkan nomor faktur pajak (jika ada)"
+            readOnly={!isEdit} // Bisa diubah hanya di halaman edit
+          />
+        </div>
+        
+        {fakturData.status_faktur && (
+          <div className="flex-1 min-w-[250px]">
+            <div className="space-y-2">
+              <Label htmlFor="status_faktur">Status Faktur</Label>
+              <div className="h-10 px-3 py-2 border rounded-md bg-muted/30 flex items-center">
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  fakturData.status_faktur === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                  fakturData.status_faktur === 'DRAFT' ? 'bg-blue-100 text-blue-800' :
+                  fakturData.status_faktur === 'AMENDED' ? 'bg-yellow-100 text-yellow-800' :
+                  fakturData.status_faktur === 'CANCELLED' ? 'bg-red-100 text-red-800' : ''
+                }`}>
+                  {fakturData.status_faktur}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
             </div>
           </div>
 
