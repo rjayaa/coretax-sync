@@ -6,7 +6,8 @@ export const calculateDetailValues = (
   const subtotal = hargaSatuan * jumlah;
   const diskon = (subtotal * diskonPersen) / 100;
   const dpp = subtotal - diskon;
-  const dppNilaiLain = (dpp * 11) / 12;
+  // const dppNilaiLain = (dpp * 11) / 12;
+  const dppNilaiLain = dpp * 0.71875;
   const ppn = dppNilaiLain * 0.12;
 
   return {

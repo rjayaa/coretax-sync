@@ -21,8 +21,8 @@ export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR_MASTER', {
   alamat_pembeli: varchar('alamat_pembeli', { length: 255 }).notNull(),
   id_tku_pembeli: varchar('id_tku_pembeli', { length: 255 }).notNull(),
   nomor_faktur_pajak: varchar('nomor_faktur_pajak', { length: 255 }).default(''),  
-  status_faktur: mysqlEnum('status_faktur', ['DRAFT', 'APPROVED', 'AMENDED', 'CANCELLED'])
+  status_faktur: mysqlEnum('status_faktur', ['CREATED', 'APPROVED', 'AMENDED', 'CANCELLED'])
     .notNull()
-    .default('DRAFT'),
+    .default('CREATED'),
   tipe_transaksi: mysqlEnum('tipe_transaksi', ['Uang Muka', 'Pelunasan'])
 });
