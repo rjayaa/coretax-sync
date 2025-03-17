@@ -15,7 +15,7 @@ export const calculateDetailValues = (
   const dpp = totalHarga - diskonNilai;
   
   // DPP Nilai Lain (defaultnya 0)
-  const dpp_nilai_lain = 0;
+  const dpp_nilai_lain = (dpp * 11) / 12;
   
   // Hitung PPN (12% dari DPP)
   const ppn = dpp * 0.12;
