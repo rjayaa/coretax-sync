@@ -1,23 +1,41 @@
-import { DetailFakturData, FakturData } from "@/types/faktur";
+// src/lib/utils/validation.ts
+import { FakturData, DetailFakturData } from '@/types/faktur';
 
 export const validateFakturData = (data: FakturData) => {
   const errors: Partial<Record<keyof FakturData, string>> = {};
-  
-  const requiredFields: (keyof FakturData)[] = [
-    'npwp_penjual',
-    'tanggal_faktur',
-    'kode_transaksi',
-    'id_tku_penjual',
-    'npwp_nik_pembeli',
-    'nama_pembeli',
-    'alamat_pembeli'
-  ];
 
-  requiredFields.forEach(field => {
-    if (!data[field]) {
-      errors[field] = `${field.replace(/_/g, ' ')} harus diisi`;
-    }
-  });
+  // Validasi field wajib
+  if (!data.npwp_penjual) {
+    errors.npwp_penjual = 'NPWP Penjual harus diisi';
+  }
+
+  if (!data.tanggal_faktur) {
+    errors.tanggal_faktur = 'Tanggal faktur harus diisi';
+  }
+
+  if (!data.kode_transaksi) {
+    errors.kode_transaksi = 'Kode transaksi harus diisi';
+  }
+
+  if (!data.npwp_nik_pembeli) {
+    errors.npwp_nik_pembeli = 'NPWP/NIK Pembeli harus diisi';
+  }
+
+  if (!data.nama_pembeli) {
+    errors.nama_pembeli = 'Nama Pembeli harus diisi';
+  }
+
+  if (!data.alamat_pembeli) {
+    errors.alamat_pembeli = 'Alamat Pembeli harus diisi';
+  }
+
+  if (!data.id_tku_penjual) {
+    errors.id_tku_penjual = 'ID TKU Penjual harus diisi';
+  }
+
+  if (!data.id_tku_pembeli) {
+    errors.id_tku_pembeli = 'ID TKU Pembeli harus diisi';
+  }
 
   return errors;
 };
@@ -25,8 +43,9 @@ export const validateFakturData = (data: FakturData) => {
 export const validateDetailData = (data: DetailFakturData) => {
   const errors: Partial<Record<keyof DetailFakturData, string>> = {};
 
+  // Validasi field wajib
   if (!data.barang_or_jasa) {
-    errors.barang_or_jasa = 'Pilih jenis barang/jasa';
+    errors.barang_or_jasa = 'Pilih tipe barang atau jasa';
   }
 
   if (!data.nama_barang_or_jasa) {
@@ -42,7 +61,7 @@ export const validateDetailData = (data: DetailFakturData) => {
   }
 
   if (!data.jumlah_barang_jasa || parseFloat(data.jumlah_barang_jasa) <= 0) {
-    errors.jumlah_barang_jasa = 'Jumlah harus lebih dari 0';
+    errors.jumlah_barang_jasa = 'Kuantitas harus lebih dari 0';
   }
 
   return errors;

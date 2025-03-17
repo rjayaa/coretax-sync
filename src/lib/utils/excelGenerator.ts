@@ -1,4 +1,4 @@
-
+// src/lib/utils/excelGenerator.ts
 import * as XLSX from 'xlsx';
 import { FakturData, DetailFakturData } from '@/types/faktur';
 

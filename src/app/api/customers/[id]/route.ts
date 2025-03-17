@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { taxDb } from '@/lib/db'
+import { db } from '@/lib/db'
 import { faktur } from '@/lib/db/schema/faktur'
-import { detailFaktur } from '@/lib/db/schema/detail-faktur'
+
 import { eq } from 'drizzle-orm'
 
 export async function GET(
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const invoice = await taxDb.query.faktur.findFirst({
+    const invoice = await db.query.faktur.findFirst({
       where: eq(faktur.id, params.id),
       with: {
         details: true,

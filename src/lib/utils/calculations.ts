@@ -1,18 +1,42 @@
+// src/lib/utils/calculations.ts
+
 export const calculateDetailValues = (
   hargaSatuan: number,
-  jumlah: number,
-  diskonPersen: number
+  jumlahBarangJasa: number,
+  totalDiskon: number = 0
 ) => {
-  const subtotal = hargaSatuan * jumlah;
-  const diskon = (subtotal * diskonPersen) / 100;
-  const dpp = subtotal - diskon;
-  // const dppNilaiLain = (dpp * 11) / 12;
-  const dppNilaiLain = dpp * 0.71875;
-  const ppn = dppNilaiLain * 0.12;
-
+  // Hitung total harga sebelum diskon
+  const totalHarga = hargaSatuan * jumlahBarangJasa;
+  
+  // Hitung diskon (dalam persentase)
+  const diskonNilai = (totalHarga * totalDiskon) / 100;
+  
+  // Hitung DPP (setelah diskon)
+  const dpp = totalHarga - diskonNilai;
+  
+  // DPP Nilai Lain (defaultnya 0)
+  const dpp_nilai_lain = 0;
+  
+  // Hitung PPN (12% dari DPP)
+  const ppn = dpp * 0.12;
+  
   return {
-    dpp: dpp.toFixed(2),
-    dpp_nilai_lain: dppNilaiLain.toFixed(2),
-    ppn: ppn.toFixed(2)
+    dpp: parseFloat(dpp.toFixed(2)),
+    dpp_nilai_lain: parseFloat(dpp_nilai_lain.toFixed(2)),
+    ppn: parseFloat(ppn.toFixed(2))
   };
+};
+
+export const formatCurrency = (value: number | string): string => {
+  if (typeof value === 'string') {
+    value = parseFloat(value);
+  }
+  
+  // Jika tidak valid, kembalikan 0
+  if (isNaN(value)) {
+    return '0';
+  }
+  
+  // Format dengan 2 desimal
+  return value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 };

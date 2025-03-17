@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { taxMasterJasa, taxDb } from '@/lib/db';
+import { taxMasterJasa, db } from '@/lib/db';
 
 
 export async function GET() { 
     try {
-        const refMasterJasa = await taxDb.select().from(taxMasterJasa);
+        const refMasterJasa = await db.select().from(taxMasterJasa);
         return NextResponse.json(refMasterJasa);
     } catch (error) {
         console.error('Error fetching kode master jasa:', error);

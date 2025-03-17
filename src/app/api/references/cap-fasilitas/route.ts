@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { taxDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { refCapFasilitas } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const capFasilitas = await taxDb
+    const capFasilitas = await db
       .select()
       .from(refCapFasilitas)
       .where(eq(refCapFasilitas.kodeTransaksi, kodeTransaksi));

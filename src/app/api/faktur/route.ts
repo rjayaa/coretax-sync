@@ -1,236 +1,159 @@
-// app/api/faktur/route.ts
-import { NextResponse } from 'next/server';
-import { taxDb } from '@/lib/db';
+// src/app/api/faktur/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
-import { desc, eq, like, and, gte, lte, sql, or } from 'drizzle-orm';
+import { desc, sql, and, eq, like, or, isNull, not } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function GET(request: Request) {
+
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    
     // Parse query parameters
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search');
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '20');
+    const status = url.searchParams.get('status');
+    const synced = url.searchParams.get('synced');
+    const search = url.searchParams.get('search');
     
-    // Date filter parameters
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const year = searchParams.get('year');
-    const month = searchParams.get('month');
-    
-    // Base query
-    let query = taxDb.select().from(faktur);
-    
-    // Apply search filter if it exists
-    if (search) {
-      query = query.where(
-        or(
-          like(faktur.referensi, `%${search}%`),
-          like(faktur.nama_pembeli, `%${search}%`),
-        ) 
-      );
-    }
-    
-    // Apply date filters with different scenarios
-    if (startDate && endDate) {
-      // Case 1: Both start and end dates are provided (date range)
-      query = query.where(
-        and(
-          gte(faktur.tanggal_faktur, new Date(startDate)),
-          lte(faktur.tanggal_faktur, new Date(endDate))
-        )
-      );
-    } else if (year && month) {
-      // Case 2: Year and month are provided
-      const startOfMonth = new Date(`${year}-${month}-01`);
-      
-      // Calculate the end of month date
-      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-      const endOfMonth = new Date(`${year}-${month}-${lastDay}`);
-      endOfMonth.setHours(23, 59, 59, 999);
-      
-      query = query.where(
-        and(
-          gte(faktur.tanggal_faktur, startOfMonth),
-          lte(faktur.tanggal_faktur, endOfMonth)
-        )
-      );
-    } else if (year) {
-      // Case 3: Only year is provided (entire year)
-      const startOfYear = new Date(`${year}-01-01`);
-      const endOfYear = new Date(`${year}-12-31`);
-      endOfYear.setHours(23, 59, 59, 999);
-      
-      query = query.where(
-        and(
-          gte(faktur.tanggal_faktur, startOfYear),
-          lte(faktur.tanggal_faktur, endOfYear)
-        )
-      );
-    } else if (month) {
-      // Case 4: Only month is provided (current year's month)
-      const currentYear = new Date().getFullYear();
-      const startOfMonth = new Date(`${currentYear}-${month}-01`);
-      
-      // Calculate the end of month date
-      const lastDay = new Date(currentYear, parseInt(month), 0).getDate();
-      const endOfMonth = new Date(`${currentYear}-${month}-${lastDay}`);
-      endOfMonth.setHours(23, 59, 59, 999);
-      
-      query = query.where(
-        and(
-          gte(faktur.tanggal_faktur, startOfMonth),
-          lte(faktur.tanggal_faktur, endOfMonth)
-        )
-      );
-    } else if (startDate) {
-      // Case 5: Only start date is provided (from this date onwards)
-      query = query.where(
-        gte(faktur.tanggal_faktur, new Date(startDate))
-      );
-    } else if (endDate) {
-      // Case 6: Only end date is provided (until this date)
-      query = query.where(
-        lte(faktur.tanggal_faktur, new Date(endDate))
-      );
-    }
-    
-    // Get total count for pagination with the same filters
-    const countQuery = taxDb.select({ count: sql`COUNT(*)` }).from(faktur);
-    
-    // Apply the same date filters to the count query
-    if (startDate && endDate) {
-      countQuery.where(
-        and(
-          gte(faktur.tanggal_faktur, new Date(startDate)),
-          lte(faktur.tanggal_faktur, new Date(endDate))
-        )
-      );
-    } else if (year && month) {
-      const startOfMonth = new Date(`${year}-${month}-01`);
-      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-      const endOfMonth = new Date(`${year}-${month}-${lastDay}`);
-      endOfMonth.setHours(23, 59, 59, 999);
-      
-      countQuery.where(
-        and(
-          gte(faktur.tanggal_faktur, startOfMonth),
-          lte(faktur.tanggal_faktur, endOfMonth)
-        )
-      );
-    } else if (year) {
-      const startOfYear = new Date(`${year}-01-01`);
-      const endOfYear = new Date(`${year}-12-31`);
-      endOfYear.setHours(23, 59, 59, 999);
-      
-      countQuery.where(
-        and(
-          gte(faktur.tanggal_faktur, startOfYear),
-          lte(faktur.tanggal_faktur, endOfYear)
-        )
-      );
-    } else if (month) {
-      const currentYear = new Date().getFullYear();
-      const startOfMonth = new Date(`${currentYear}-${month}-01`);
-      const lastDay = new Date(currentYear, parseInt(month), 0).getDate();
-      const endOfMonth = new Date(`${currentYear}-${month}-${lastDay}`);
-      endOfMonth.setHours(23, 59, 59, 999);
-      
-      countQuery.where(
-        and(
-          gte(faktur.tanggal_faktur, startOfMonth),
-          lte(faktur.tanggal_faktur, endOfMonth)
-        )
-      );
-    } else if (startDate) {
-      countQuery.where(gte(faktur.tanggal_faktur, new Date(startDate)));
-    } else if (endDate) {
-      countQuery.where(lte(faktur.tanggal_faktur, new Date(endDate)));
-    }
-    
-    // Execute count query
-    const totalCount = await countQuery.execute();
-    const total = totalCount[0]?.count || 0;
-    
-    // Calculate pagination
+    // Calculate offset
     const offset = (page - 1) * limit;
-    const totalPages = Math.ceil(Number(total) / limit);
     
-    // Get data with pagination
+    // Build query conditions
+    let conditions = [] as any[];
+    
+    if (status) {
+      conditions.push(eq(faktur.status_faktur, status));
+    }
+    
+    if (synced === 'yes') {
+      conditions.push(not(isNull(faktur.coretax_record_id)));
+    } else if (synced === 'no') {
+      conditions.push(isNull(faktur.coretax_record_id));
+    }
+    
+    if (search) {
+      const searchTerm = `%${search}%`;
+      conditions.push(
+        or(
+          like(faktur.referensi, searchTerm),
+          like(faktur.nama_pembeli, searchTerm),
+          like(faktur.npwp_nik_pembeli, searchTerm)
+        )
+      );
+    }
+    
+    // Count total records with filters
+    const totalQuery = db.select({ count: sql`COUNT(*)` }).from(faktur);
+    
+    if (conditions.length > 0) {
+      totalQuery.where(and(...conditions));
+    }
+    
+    const totalResult = await totalQuery;
+    const total = totalResult[0].count;
+    
+    // Fetch records with pagination
+    const query = db.select({
+      id: faktur.id,
+      referensi: faktur.referensi,
+      tanggal_faktur: faktur.tanggal_faktur,
+      nama_pembeli: faktur.nama_pembeli,
+      npwp_nik_pembeli: faktur.npwp_nik_pembeli,
+      status_faktur: faktur.status_faktur,
+      nomor_faktur_pajak: faktur.nomor_faktur_pajak,
+      is_uploaded_to_coretax: faktur.is_uploaded_to_coretax
+    }).from(faktur);
+    
+    // Apply filters
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
+    
+    // Apply pagination
     const fakturs = await query
-      .orderBy(desc(faktur.tanggal_faktur))
+      .orderBy(desc(sql`createdAt`))
       .limit(limit)
-      .offset(offset)
-      .execute();
+      .offset(offset);
+    
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
     
     return NextResponse.json({
       fakturs,
       pagination: {
-        total: Number(total),
         page,
         limit,
+        total,
         totalPages
       }
     });
-  } catch (error) {
-    console.error('Error in faktur GET:', error);
+  } catch (error: any) {
+    console.error('Error fetching faktur list:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch fakturs' },
+      { error: error.message },
       { status: 500 }
     );
   }
 }
 
-// POST method remains unchanged
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-
-    // Validate the required fields
-    if (!body.tanggal_faktur || !body.kode_transaksi || 
-        !body.id_tku_penjual || !body.npwp_nik_pembeli || 
-        !body.nama_pembeli || !body.alamat_pembeli) {
+    const data = await req.json();
+    
+    // Validasi data yang diperlukan
+    if (!data.tanggal_faktur || !data.kode_transaksi || !data.nama_pembeli ||
+        !data.alamat_pembeli || !data.npwp_nik_pembeli || !data.id_tku_penjual ||
+        !data.id_tku_pembeli) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Data faktur tidak lengkap' },
         { status: 400 }
       );
     }
-
-    // Generate a single UUID to use for both insertion and response
+    
+    // Generate UUID untuk faktur baru
     const newId = uuidv4();
-
-    // Insert with the generated ID
-    const result = await taxDb.insert(faktur).values({
+    
+    // Persiapkan data untuk dimasukkan ke database
+    const fakturData = {
       id: newId,
-      npwp_penjual: body.npwp_penjual,
-      tanggal_faktur: new Date(body.tanggal_faktur),
-      jenis_faktur: body.jenis_faktur || 'Normal',
-      kode_transaksi: body.kode_transaksi,
-      keterangan_tambahan: body.keterangan_tambahan || null,
-      dokumen_pendukung: body.dokumen_pendukung || null,
-      referensi: body.referensi || null,
-      cap_fasilitas: body.cap_fasilitas || null,
-      id_tku_penjual: body.id_tku_penjual,
-      npwp_nik_pembeli: body.npwp_nik_pembeli,
-      jenis_id_pembeli: body.jenis_id_pembeli || 'TIN',
-      negara_pembeli: body.negara_pembeli || 'IDN',
-      nomor_dokumen_pembeli: body.nomor_dokumen_pembeli || null,
-      nama_pembeli: body.nama_pembeli,
-      alamat_pembeli: body.alamat_pembeli,
-      email_pembeli: body.email_pembeli || null,
-      nomor_faktur_pajak: body.nomor_faktur_pajak,
-      tipe_transaksi: body.tipe_transaksi,
-      id_tku_pembeli: body.id_tku_pembeli
-    });
-
-    // Return the body with the same ID that was used for insertion
-    return NextResponse.json({...body, id: newId});
-  } catch (error) {
-    console.error('Error in faktur POST:', error);
+      npwp_penjual: data.npwp_penjual || '',
+      tanggal_faktur: new Date(data.tanggal_faktur),
+      jenis_faktur: data.jenis_faktur || 'Normal',
+      kode_transaksi: data.kode_transaksi,
+      keterangan_tambahan: data.keterangan_tambahan || '',
+      dokumen_pendukung: data.dokumen_pendukung || '',
+      referensi: data.referensi || '',
+      cap_fasilitas: data.cap_fasilitas || '',
+      id_tku_penjual: data.id_tku_penjual,
+      npwp_nik_pembeli: data.npwp_nik_pembeli,
+      jenis_id_pembeli: data.jenis_id_pembeli || 'TIN',
+      negara_pembeli: data.negara_pembeli || 'IDN',
+      nomor_dokumen_pembeli: data.nomor_dokumen_pembeli || '',
+      nama_pembeli: data.nama_pembeli,
+      alamat_pembeli: data.alamat_pembeli,
+      id_tku_pembeli: data.id_tku_pembeli,
+      nomor_faktur_pajak: data.nomor_faktur_pajak || '',
+      status_faktur: 'CREATED',
+      tipe_transaksi: data.tipe_transaksi || 'Uang Muka',
+      // Kolom tambahan untuk Coretax sinkronisasi
+      is_uploaded_to_coretax: false,
+    };
+    
+    // Insert data ke database
+    await db.insert(faktur).values(fakturData);
+    
+    // Format tanggal untuk respon
+    const responseData = {
+      ...fakturData,
+      tanggal_faktur: fakturData.tanggal_faktur.toISOString().split('T')[0],
+    };
+    
+    return NextResponse.json(responseData, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating faktur:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to create faktur' },
+      { error: error.message || 'Gagal membuat faktur' },
       { status: 500 }
     );
   }

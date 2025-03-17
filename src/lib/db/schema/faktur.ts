@@ -1,6 +1,5 @@
 // src/lib/db/schema/faktur.ts
-import { varchar, date, mysqlTable, char,mysqlEnum } from 'drizzle-orm/mysql-core';
-
+import { varchar, date, mysqlTable, char, mysqlEnum, timestamp, boolean } from 'drizzle-orm/mysql-core';
 
 export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR_MASTER', {
   id: varchar('id', { length: 36 }).primaryKey(),
@@ -25,4 +24,12 @@ export const faktur = mysqlTable('T_L_EFW_TAX_FAKTUR_MASTER', {
     .notNull()
     .default('CREATED'),
   tipe_transaksi: mysqlEnum('tipe_transaksi', ['Uang Muka', 'Pelunasan'])
+    .notNull()
+    .default('Uang Muka'),
+    
+  // Kolom baru untuk integrasi dengan Coretax
+  coretax_record_id: varchar('coretax_record_id', { length: 36 }),
+  is_uploaded_to_coretax: boolean('is_uploaded_to_coretax').default(false),
+  last_sync_date: timestamp('last_sync_date'),
+  amended_from_faktur_id: varchar('amended_from_faktur_id', { length: 36 }),
 });

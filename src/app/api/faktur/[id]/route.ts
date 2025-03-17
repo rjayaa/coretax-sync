@@ -1,161 +1,155 @@
-//src/app/api/faktur/[id]/route.ts
-
-import { NextResponse } from 'next/server';
-import { taxDb } from '@/lib/db';
+// src/app/api/faktur/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
 import { fakturDetail } from '@/lib/db/schema/detail-faktur';
 import { eq } from 'drizzle-orm';
 
-// Fixed version based on Next.js docs
 export async function GET(
-  request: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    console.log(`Getting faktur with ID: ${id}`);
-    
-    // Fetch faktur data
-    const fakturData = await taxDb
-      .select()
+    const fakturId = params.id;
+    const result = await db.select()
       .from(faktur)
-      .where(eq(faktur.id, id))
-      .execute();
-
-    if (!fakturData || fakturData.length === 0) {
+      .where(eq(faktur.id, fakturId))
+      .limit(1);
+    
+    if (result.length === 0) {
       return NextResponse.json(
-        { error: 'Faktur not found' },
+        { error: 'Faktur tidak ditemukan' },
         { status: 404 }
       );
     }
-
-    // Fetch detail data
-    const detailData = await taxDb
-      .select()
-      .from(fakturDetail)
-      .where(eq(fakturDetail.id_faktur, id))
-      .execute();
-
-    console.log(`Found faktur with ${detailData.length} details`);
-
-    return NextResponse.json({
-      faktur: fakturData[0],
-      details: detailData
-    });
+    
+    return NextResponse.json(result[0]);
   } catch (error: any) {
-    console.error('Error in faktur GET by ID:', error);
+    console.error('Error fetching faktur:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch faktur' },
+      { error: error.message },
       { status: 500 }
     );
   }
 }
-// Di app/api/faktur/[id]/route.ts - update PATCH handler
 export async function PATCH(
-  request: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-    const body = await request.json();
-
-    // Validate faktur exists
-    const existingFaktur = await taxDb
-      .select()
+    const fakturId = params.id;
+    const data = await req.json();
+    
+    // Validasi: cek apakah faktur ada
+    const existingFaktur = await db.select()
       .from(faktur)
-      .where(eq(faktur.id, id))
-      .execute();
-
-    if (!existingFaktur || existingFaktur.length === 0) {
+      .where(eq(faktur.id, fakturId))
+      .limit(1);
+      
+    if (existingFaktur.length === 0) {
       return NextResponse.json(
-        { error: 'Faktur not found' },
+        { error: 'Faktur tidak ditemukan' },
         { status: 404 }
       );
     }
-
-    // Update faktur
-    await taxDb
-      .update(faktur)
-      .set({
-        // Properti yang sudah ada
-        npwp_penjual: body.npwp_penjual,
-        tanggal_faktur: body.tanggal_faktur ? new Date(body.tanggal_faktur) : undefined,
-        jenis_faktur: body.jenis_faktur,
-        kode_transaksi: body.kode_transaksi,
-        keterangan_tambahan: body.keterangan_tambahan,
-        dokumen_pendukung: body.dokumen_pendukung,
-        referensi: body.referensi,
-        cap_fasilitas: body.cap_fasilitas,
-        id_tku_penjual: body.id_tku_penjual,
-        npwp_nik_pembeli: body.npwp_nik_pembeli,
-        jenis_id_pembeli: body.jenis_id_pembeli,
-        negara_pembeli: body.negara_pembeli,
-        nomor_dokumen_pembeli: body.nomor_dokumen_pembeli,
-        nama_pembeli: body.nama_pembeli,
-        alamat_pembeli: body.alamat_pembeli,
-        id_tku_pembeli: body.id_tku_pembeli,
-        
-        // Tambahkan field nomor_faktur_pajak
-        nomor_faktur_pajak: body.nomor_faktur_pajak
-      })
-      .where(eq(faktur.id, id))
-      .execute();
-
-    // Fetch updated data
-    const updatedFaktur = await taxDb
-      .select()
+    
+    // Persiapkan data untuk update
+    const updateData: any = {};
+    
+    // Update hanya field yang diberikan
+    if (data.npwp_penjual !== undefined) updateData.npwp_penjual = data.npwp_penjual;
+    if (data.tanggal_faktur !== undefined) updateData.tanggal_faktur = new Date(data.tanggal_faktur);
+    if (data.jenis_faktur !== undefined) updateData.jenis_faktur = data.jenis_faktur;
+    if (data.kode_transaksi !== undefined) updateData.kode_transaksi = data.kode_transaksi;
+    if (data.keterangan_tambahan !== undefined) updateData.keterangan_tambahan = data.keterangan_tambahan;
+    if (data.dokumen_pendukung !== undefined) updateData.dokumen_pendukung = data.dokumen_pendukung;
+    if (data.referensi !== undefined) updateData.referensi = data.referensi;
+    if (data.cap_fasilitas !== undefined) updateData.cap_fasilitas = data.cap_fasilitas;
+    if (data.id_tku_penjual !== undefined) updateData.id_tku_penjual = data.id_tku_penjual;
+    if (data.npwp_nik_pembeli !== undefined) updateData.npwp_nik_pembeli = data.npwp_nik_pembeli;
+    if (data.jenis_id_pembeli !== undefined) updateData.jenis_id_pembeli = data.jenis_id_pembeli;
+    if (data.negara_pembeli !== undefined) updateData.negara_pembeli = data.negara_pembeli;
+    if (data.nomor_dokumen_pembeli !== undefined) updateData.nomor_dokumen_pembeli = data.nomor_dokumen_pembeli;
+    if (data.nama_pembeli !== undefined) updateData.nama_pembeli = data.nama_pembeli;
+    if (data.alamat_pembeli !== undefined) updateData.alamat_pembeli = data.alamat_pembeli;
+    if (data.id_tku_pembeli !== undefined) updateData.id_tku_pembeli = data.id_tku_pembeli;
+    if (data.nomor_faktur_pajak !== undefined) updateData.nomor_faktur_pajak = data.nomor_faktur_pajak;
+    if (data.status_faktur !== undefined) updateData.status_faktur = data.status_faktur;
+    if (data.tipe_transaksi !== undefined) updateData.tipe_transaksi = data.tipe_transaksi;
+    
+    // Jika tidak ada data yang diubah
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'Tidak ada data yang diubah' },
+        { status: 400 }
+      );
+    }
+    
+    // Update data di database
+    await db.update(faktur)
+      .set(updateData)
+      .where(eq(faktur.id, fakturId));
+    
+    // Ambil faktur yang sudah diupdate untuk response
+    const updatedFaktur = await db.select()
       .from(faktur)
-      .where(eq(faktur.id, id))
-      .execute();
-
-    return NextResponse.json(updatedFaktur[0]);
+      .where(eq(faktur.id, fakturId))
+      .limit(1);
+    
+    // Format tanggal untuk respons
+    const responseData = {
+      ...updatedFaktur[0],
+      tanggal_faktur: updatedFaktur[0].tanggal_faktur instanceof Date 
+        ? updatedFaktur[0].tanggal_faktur.toISOString().split('T')[0]
+        : updatedFaktur[0].tanggal_faktur,
+    };
+    
+    return NextResponse.json(responseData);
   } catch (error: any) {
-    console.error('Error in faktur PATCH:', error);
+    console.error('Error updating faktur:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to update faktur' },
+      { error: error.message || 'Gagal mengupdate faktur' },
       { status: 500 }
     );
   }
 }
 
 export async function DELETE(
-  request: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
-
-    // Validate faktur exists
-    const existingFaktur = await taxDb
-      .select()
+    const fakturId = params.id;
+    
+    // Validasi: cek apakah faktur ada
+    const existingFaktur = await db.select()
       .from(faktur)
-      .where(eq(faktur.id, id))
-      .execute();
-
-    if (!existingFaktur || existingFaktur.length === 0) {
+      .where(eq(faktur.id, fakturId))
+      .limit(1);
+      
+    if (existingFaktur.length === 0) {
       return NextResponse.json(
-        { error: 'Faktur not found' },
+        { error: 'Faktur tidak ditemukan' },
         { status: 404 }
       );
     }
-
-    // Delete related detail records first to maintain referential integrity
-    await taxDb
-      .delete(fakturDetail)
-      .where(eq(fakturDetail.id_faktur, id))
-      .execute();
-
-    // Delete the faktur
-    await taxDb
-      .delete(faktur)
-      .where(eq(faktur.id, id))
-      .execute();
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Error in faktur DELETE:', error);
+    
+    // Hapus semua detail faktur terlebih dahulu (untuk menjaga integritas referensial)
+    await db.delete(fakturDetail)
+      .where(eq(fakturDetail.id_faktur, fakturId));
+    
+    // Hapus faktur
+    await db.delete(faktur)
+      .where(eq(faktur.id, fakturId));
+    
     return NextResponse.json(
-      { error: error.message || 'Failed to delete faktur' },
+      { message: 'Faktur berhasil dihapus' },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error('Error deleting faktur:', error);
+    return NextResponse.json(
+      { error: error.message || 'Gagal menghapus faktur' },
       { status: 500 }
     );
   }

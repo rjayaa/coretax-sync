@@ -1,7 +1,7 @@
 // app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { eipDb, taxDb } from "@/lib/db";
+import { eipDb, db } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { userLoginView } from "@/lib/db/schema/eip";
@@ -45,7 +45,7 @@ export const authOptions = {
             // Di dalam fungsi authorize pada route.ts
 
         // Get user's assigned companies with proper joining
-        const assignedCompanies = await taxDb
+        const assignedCompanies = await db
         .select({
             idnik: taxUserRoles.idnik,
             company_code: taxMasterCompany.company_code,

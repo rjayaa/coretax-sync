@@ -1,123 +1,130 @@
 // src/app/api/detail-faktur/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { taxDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { fakturDetail } from '@/lib/db/schema/detail-faktur';
 import { faktur } from '@/lib/db/schema/faktur';
+import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 
-export async function GET(request: NextRequest) {
+// Fungsi untuk mengkonversi nilai menjadi desimal yang aman
+const safeDecimal = (value: any, defaultValue = 0) => {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+  
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  return isNaN(numValue) ? defaultValue : numValue;
+};
+
+// Fungsi untuk mengkonversi nilai menjadi integer yang aman
+const safeInteger = (value: any, defaultValue = 0) => {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+  
+  const numValue = typeof value === 'string' ? parseInt(value) : value;
+  return isNaN(numValue) ? defaultValue : numValue;
+};
+
+export async function GET(req: NextRequest) {
   try {
-    // Get faktur ID from query params
-    const { searchParams } = new URL(request.url);
-    const fakturId = searchParams.get('fakturId');
-    
-    console.log("GET - Fetching details for fakturId:", fakturId);
+    const url = new URL(req.url);
+    const fakturId = url.searchParams.get('fakturId');
     
     if (!fakturId) {
       return NextResponse.json(
-        { error: 'Missing fakturId parameter' },
+        { error: 'ID faktur diperlukan' },
         { status: 400 }
       );
     }
     
-    // Query detail records for this faktur
-    const details = await taxDb
-      .select()
-      .from(fakturDetail)
-      .where(eq(fakturDetail.id_faktur, fakturId))
-      .execute();
+    // Cek apakah faktur ada
+    const fakturData = await db.select()
+      .from(faktur)
+      .where(eq(faktur.id, fakturId))
+      .limit(1);
+      
+    if (fakturData.length === 0) {
+      return NextResponse.json(
+        { error: 'Faktur tidak ditemukan' },
+        { status: 404 }
+      );
+    }
     
-    console.log(`Found ${details.length} detail records for faktur ${fakturId}`);
+    // Ambil semua detail untuk faktur tersebut
+    const details = await db.select()
+      .from(fakturDetail)
+      .where(eq(fakturDetail.id_faktur, fakturId));
+      
     return NextResponse.json(details);
-  } catch (error) {
-    console.error('Error in detail-faktur GET:', error);
+  } catch (error: any) {
+    console.error('Error fetching faktur details:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch detail faktur' },
+      { error: error.message || 'Gagal mengambil detail faktur' },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    console.log('Received detail faktur data:', body);
-
-    // Validasi data yang masuk
-    if (!body.id_detail_faktur || !body.id_faktur || !body.nama_satuan_ukur) {
+    const data = await req.json();
+    
+    // Validasi data yang diperlukan
+    if (!data.id_faktur || !data.nama_satuan_ukur) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Data detail faktur tidak lengkap' },
         { status: 400 }
       );
     }
-
-    // IMPORTANT: Verifikasi bahwa faktur dengan ID tersebut ada di database
-    const fakturExists = await taxDb
-      .select({ id: faktur.id })
+    
+    // Cek apakah faktur ada
+    const fakturData = await db.select()
       .from(faktur)
-      .where(eq(faktur.id, body.id_faktur))
-      .execute();
-    
-    console.log(`Verifying faktur ID ${body.id_faktur} exists:`, fakturExists);
-    
-    if (!fakturExists || fakturExists.length === 0) {
-      console.error(`Faktur with ID ${body.id_faktur} not found in database`);
+      .where(eq(faktur.id, data.id_faktur))
+      .limit(1);
+      
+    if (fakturData.length === 0) {
       return NextResponse.json(
-        { 
-          error: 'Faktur dengan ID tersebut tidak ditemukan', 
-          details: `ID faktur '${body.id_faktur}' tidak ada dalam database`
-        },
+        { error: 'Faktur induk tidak ditemukan' },
         { status: 404 }
       );
     }
-
-    // Periksa data numerik untuk memastikan tidak ada NaN atau nilai tidak valid
-    const safeNumericValue = (value: any, defaultValue = 0) => {
-      if (value === null || value === undefined) return defaultValue;
-      const num = Number(value);
-      return isNaN(num) ? defaultValue : num;
-    };
-
-    // Buat record yang akan diinsert dengan handling nilai yang lebih baik
+    
+    // Generate UUID untuk detail faktur baru jika tidak ada
+    const detailId = data.id_detail_faktur || uuidv4();
+    
+    // Persiapkan data untuk dimasukkan ke database
     const detailData = {
-      id_detail_faktur: body.id_detail_faktur,
-      id_faktur: body.id_faktur,
-      barang_or_jasa: body.barang_or_jasa,
-      kode_barang_or_jasa: body.kode_barang_or_jasa || null,
-      nama_barang_or_jasa: body.nama_barang_or_jasa || null,
-      nama_satuan_ukur: body.nama_satuan_ukur,
-      harga_satuan: safeNumericValue(body.harga_satuan),
-      jumlah_barang: body.jumlah_barang !== undefined ? safeNumericValue(body.jumlah_barang, 1) : null,
-      jumlah_jasa: body.jumlah_jasa !== undefined ? safeNumericValue(body.jumlah_jasa, 1) : null,
-      diskon_persen: safeNumericValue(body.diskon_persen, 0),
-      dpp: safeNumericValue(body.dpp),
-      dpp_nilai_lain: safeNumericValue(body.dpp_nilai_lain),
-      tarif_ppn: safeNumericValue(body.tarif_ppn, 12),
-      ppn: safeNumericValue(body.ppn),
-      tarif_ppnbm: body.tarif_ppnbm !== undefined ? safeNumericValue(body.tarif_ppnbm, 0) : null,
-      ppnbm: body.ppnbm !== undefined ? safeNumericValue(body.ppnbm, 0) : null,
+      id_detail_faktur: detailId,
+      id_faktur: data.id_faktur,
+      barang_or_jasa: data.barang_or_jasa || null,
+      kode_barang_or_jasa: data.kode_barang_or_jasa || null,
+      nama_barang_or_jasa: data.nama_barang_or_jasa || null,
+      nama_satuan_ukur: data.nama_satuan_ukur,
+      harga_satuan: safeDecimal(data.harga_satuan),
+      // Handling jumlah barang/jasa
+      jumlah_barang: data.barang_or_jasa === 'a' ? 
+        safeInteger(data.jumlah_barang, 1) : null,
+      jumlah_jasa: data.barang_or_jasa === 'b' ? 
+        safeInteger(data.jumlah_jasa, 1) : null,
+      diskon_persen: safeDecimal(data.diskon_persen, 0),
+      dpp: safeDecimal(data.dpp),
+      dpp_nilai_lain: safeDecimal(data.dpp_nilai_lain),
+      tarif_ppn: safeDecimal(data.tarif_ppn, 12),
+      ppn: safeDecimal(data.ppn),
+      tarif_ppnbm: safeDecimal(data.tarif_ppnbm, 0),
+      ppnbm: safeDecimal(data.ppnbm, 0),
     };
-
-    console.log('Processed detail data for insert:', detailData);
-
-    try {
-      const result = await taxDb.insert(fakturDetail).values(detailData);
-      console.log('Insert result:', result);
-      return NextResponse.json(detailData);
-    } catch (insertError) {
-      console.error('Database insert error:', insertError);
-      return NextResponse.json(
-        { 
-          error: 'Database insert error', 
-          details: insertError.message || 'Unknown database error'
-        },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
-    console.error('Error in detail-faktur POST:', error);
+    
+    // Insert data ke database
+    await db.insert(fakturDetail).values(detailData);
+    
+    return NextResponse.json(detailData, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating faktur detail:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to create detail faktur' },
+      { error: error.message || 'Gagal membuat detail faktur' },
       { status: 500 }
     );
   }

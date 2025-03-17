@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { taxDb } from '@/lib/db';
+import { db } from '@/lib/db';
 import { refKeteranganTambahan } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const keteranganTambahan = await taxDb
+    const keteranganTambahan = await db
       .select()
       .from(refKeteranganTambahan)
       .where(eq(refKeteranganTambahan.kodeTransaksi, kodeTransaksi));

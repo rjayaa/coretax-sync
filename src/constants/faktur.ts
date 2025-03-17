@@ -1,14 +1,15 @@
-import { DetailFakturData, FakturData } from "@/types/faktur";
+// src/constants/faktur.ts
+import { FakturData, DetailFakturData } from '@/types/faktur';
 
 export const INITIAL_FAKTUR_STATE: FakturData = {
-  tanggal_faktur: '',
+  npwp_penjual: '',
+  tanggal_faktur: new Date().toISOString().split('T')[0],
   jenis_faktur: 'Normal',
   kode_transaksi: '',
   keterangan_tambahan: '',
   dokumen_pendukung: '',
   referensi: '',
   cap_fasilitas: '',
-  npwp_penjual: '',
   id_tku_penjual: '',
   npwp_nik_pembeli: '',
   jenis_id_pembeli: 'TIN',
@@ -16,8 +17,9 @@ export const INITIAL_FAKTUR_STATE: FakturData = {
   nomor_dokumen_pembeli: '',
   nama_pembeli: '',
   alamat_pembeli: '',
-  email_pembeli: '',
-  id_tku_pembeli: ''
+  id_tku_pembeli: '',
+  nomor_faktur_pajak: '',
+  tipe_transaksi: 'uang_muka'
 };
 
 export const INITIAL_DETAIL_STATE: DetailFakturData = {
@@ -26,16 +28,15 @@ export const INITIAL_DETAIL_STATE: DetailFakturData = {
   kode_barang_or_jasa: '',
   nama_barang_or_jasa: '',
   nama_satuan_ukur: '',
-  harga_satuan: '',
-  jumlah_barang_jasa: '',
-  jumlah_barang: '',
-  jumlah_jasa: '',
-  total_diskon: '0.00',
-  dpp: '0.00',
-  dpp_nilai_lain: '0.00',
+  harga_satuan: '0',
+  jumlah_barang_jasa: '0',
+  jumlah_barang: '0',
+  jumlah_jasa: '0',
+  total_diskon: '0',
+  dpp: '0',
+  dpp_nilai_lain: '0',
   tarif_ppn: '12.00',
-  ppn: '0.00',
-  tarif_ppnbm: '0.00',
-  ppnbm: '0.00',
-  id_detail_faktur: ""
+  ppn: '0',
+  tarif_ppnbm: '0',
+  ppnbm: '0'
 };

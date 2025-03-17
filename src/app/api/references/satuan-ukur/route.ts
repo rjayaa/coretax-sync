@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import {  satuanUkur, taxDb } from '@/lib/db';
+import {  satuanUkur, db } from '@/lib/db';
 
 
 
 export async function GET() {
     try {
-        const refSatuanUkur = await taxDb.select().from(satuanUkur);
+        const refSatuanUkur = await db.select().from(satuanUkur);
         return NextResponse.json(refSatuanUkur);
     } catch (error) {
         console.error('Error fetching kode satuan ukur:', error);

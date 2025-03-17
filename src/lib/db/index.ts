@@ -7,7 +7,7 @@ import * as fakturSchema from './schema/faktur';
 import * as detailSchema from './schema/detail-faktur';
 import * as refSchema from './schema/references';
 
-// Create connection pool for EIP database (Authentication)
+// Create connectiindeon pool for EIP database (Authentication)
 const eipPool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -35,7 +35,7 @@ export const eipDb = drizzle(eipPool, {
   mode: 'default' 
 });
 
-export const taxDb = drizzle(taxPool, { 
+export const db = drizzle(taxPool, { 
   schema: {
     ...masterSchema,
     ...fakturSchema,

@@ -2,7 +2,7 @@
 // app/(auth)/login/page.tsx
 import Image from "next/image";
 import { Metadata } from 'next';
-import { LoginForm } from "@/components/auth/login-form";
+import { LoginForm } from "@/components/LoginForm";
 
 export const metadata: Metadata = {
   title: 'Import Tax - Login',
