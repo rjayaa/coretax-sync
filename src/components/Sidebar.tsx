@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 
 const menuItems = [
   {
@@ -46,13 +47,50 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+
+  // Get user companies from session
+  const userCompanies = session?.user?.companies || [];
+  
+  useEffect(() => {
+    // Load selected company from localStorage or set first company as default
+    const savedCompany = localStorage.getItem('selectedCompany');
+    if (savedCompany) {
+      setSelectedCompany(JSON.parse(savedCompany));
+    } else if (userCompanies.length > 0) {
+      setSelectedCompany(userCompanies[0]);
+      localStorage.setItem('selectedCompany', JSON.stringify(userCompanies[0]));
+    }
+  }, [userCompanies]);
+
+  const handleCompanySelect = (company) => {
+    setSelectedCompany(company);
+    localStorage.setItem('selectedCompany', JSON.stringify(company));
+    setIsCompanyDropdownOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/auth/login');
+  };
+
+  // Get user initials for the avatar
+  const getUserInitials = () => {
+    if (!session || !session.user || !session.user.username) return 'U';
+    
+    return session.user.username.substring(0, 2).toUpperCase();
+  };
 
   return (
     <div
       className={`${
         isCollapsed ? 'w-20' : 'w-64'
-      } bg-white shadow-lg transition-all duration-300 flex flex-col`}
+      } bg-white shadow-lg transition-all duration-300 flex flex-col h-screen`}
     >
+      {/* Logo and Toggle Button */}
       <div className="p-4 border-b flex items-center justify-between">
         {!isCollapsed && (
           <h1 className="text-xl font-bold text-gray-800">Coretax Sync</h1>
@@ -73,7 +111,88 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 px-2 py-4 space-y-2">
+      {/* User Profile and Logout */}
+      <div className="p-4 border-b">
+        {!isCollapsed ? (
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold mr-3">
+                  {getUserInitials()}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{session?.user?.username || 'User'}</p>
+                  <p className="text-xs text-gray-500">{session?.user?.position || ''}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-red-600 rounded-full hover:bg-red-100 transition-colors"
+                title="Logout"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Company Selection */}
+            {userCompanies.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                  className="w-full flex items-center justify-between p-2 border rounded-md text-sm"
+                >
+                  <span className="truncate">
+                    {selectedCompany ? selectedCompany.company_name : 'Select Company'}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {isCompanyDropdownOpen && userCompanies.length > 1 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                    {userCompanies.map((company, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleCompanySelect(company)}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                      >
+                        <div className="font-medium">{company.company_name}</div>
+                        <div className="text-xs text-gray-500">NPWP: {company.npwp_company}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold mb-2">
+              {getUserInitials()}
+            </div>
+            {selectedCompany && (
+              <div className="text-xs text-center mb-2 truncate w-full" title={selectedCompany.company_name}>
+                {selectedCompany.company_code}
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="p-2 text-red-600 rounded-full hover:bg-red-50"
+              title="Logout"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Menu */}
+      <nav className="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
@@ -92,27 +211,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      <div className="p-4 border-t">
-        {!isCollapsed && (
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold mr-3">
-              TX
-            </div>
-            <div>
-              <p className="text-sm font-medium">Tim Tax</p>
-              <p className="text-xs text-gray-500">Departemen Pajak</p>
-            </div>
-          </div>
-        )}
-        {isCollapsed && (
-          <div className="flex justify-center">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold">
-              TX
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

@@ -84,7 +84,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full mx-auto">
         {error && (
           <Alert variant="destructive" className="bg-red-900/50 border-red-500/50">
             <AlertDescription className="text-white">{error}</AlertDescription>

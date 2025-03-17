@@ -1,6 +1,27 @@
+'use client';
+
 import Image from "next/image";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If the user is authenticated, redirect to dashboard
+    if (status === "authenticated" && session) {
+      router.push("/dashboard");
+    }
+  }, [session, status, router]);
+
+  // If still loading or redirecting, you could show a loading state
+  if (status === "loading") {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
+
+  // Only show the landing page if not authenticated
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">

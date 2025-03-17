@@ -23,16 +23,16 @@ export default withAuth(
       },
     },
     cookies: {
-  sessionToken: {
-    name: 'next-auth.session-token',
-    options: {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
+      sessionToken: {
+        name: 'next-auth.session-token',
+        options: {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+        },
+      },
     },
-  },
-},
   }
 )
 
