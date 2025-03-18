@@ -5,7 +5,6 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { FakturService } from '@/services/FakturService';
 import { FakturData, DetailFakturData } from '@/types/faktur';
 import DetailFakturForm from '@/components/DetailFakturForm';
 import { DetailList } from '@/components/DetailList';

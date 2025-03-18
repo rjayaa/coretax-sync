@@ -1,9 +1,13 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+
+// Custom event name for company change
+const COMPANY_CHANGE_EVENT = 'company-changed';
 
 const menuItems = [
   {
@@ -55,21 +59,49 @@ export default function Sidebar() {
   // Get user companies from session
   const userCompanies = session?.user?.companies || [];
   
-  useEffect(() => {
-    // Load selected company from localStorage or set first company as default
-    const savedCompany = localStorage.getItem('selectedCompany');
-    if (savedCompany) {
-      setSelectedCompany(JSON.parse(savedCompany));
-    } else if (userCompanies.length > 0) {
-      setSelectedCompany(userCompanies[0]);
-      localStorage.setItem('selectedCompany', JSON.stringify(userCompanies[0]));
+ // Fix for the Sidebar.tsx component
+
+useEffect(() => {
+  // This should only run once when the component mounts
+  const savedCompany = localStorage.getItem('selectedCompany');
+  if (savedCompany) {
+    try {
+      // Parse safely with error handling
+      const parsedCompany = JSON.parse(savedCompany);
+      // Only set if different from current state to avoid loops
+      setSelectedCompany(prevSelected => {
+        // Compare IDs or some unique identifier rather than the whole object
+        if (!prevSelected || prevSelected.id !== parsedCompany.id) {
+          return parsedCompany;
+        }
+        return prevSelected;
+      });
+    } catch (error) {
+      console.error('Error parsing saved company:', error);
     }
-  }, [userCompanies]);
+  } else if (userCompanies.length > 0) {
+    setSelectedCompany(prevSelected => {
+      // Only set if not already set
+      if (!prevSelected) {
+        localStorage.setItem('selectedCompany', JSON.stringify(userCompanies[0]));
+        return userCompanies[0];
+      }
+      return prevSelected;
+    });
+  }
+  // This effect should only run when userCompanies changes, not on every render
+}, [userCompanies]); // Add userCompanies as a dependency
 
   const handleCompanySelect = (company) => {
     setSelectedCompany(company);
     localStorage.setItem('selectedCompany', JSON.stringify(company));
     setIsCompanyDropdownOpen(false);
+    
+    // Dispatch a custom event when company changes
+    const companyChangeEvent = new CustomEvent(COMPANY_CHANGE_EVENT, { 
+      detail: { company } 
+    });
+    window.dispatchEvent(companyChangeEvent);
   };
 
   const handleLogout = async () => {

@@ -152,7 +152,101 @@ export class FakturService {
       throw error;
     }
   }
+// Add this new method to your existing FakturService class
 
+  // Save faktur and all its details in a single transaction
+  static async saveFakturWithDetails(
+    fakturData: FakturData, 
+    detailItems: DetailFakturData[]
+  ): Promise<FakturWithDetails> {
+    try {
+      console.log('Saving faktur with details in one transaction');
+      console.log('Faktur data:', fakturData);
+      console.log('Detail items:', detailItems);
+      
+      // Make a single API call to the new endpoint
+      const response = await fetch('/api/faktur-with-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fakturData,
+          detailItems
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response from API:', errorData);
+        throw new Error(errorData.error || 'Failed to save faktur with details');
+      }
+
+      const data = await response.json();
+      console.log('API response:', data);
+      
+      // Ensure all faktur fields are properly transformed
+      const savedFaktur = {
+        id: data.faktur.id,
+        npwp_penjual: data.faktur.npwp_penjual || '',
+        tanggal_faktur: data.faktur.tanggal_faktur || '',
+        jenis_faktur: data.faktur.jenis_faktur || 'Normal',
+        kode_transaksi: data.faktur.kode_transaksi || '',
+        keterangan_tambahan: data.faktur.keterangan_tambahan || '',
+        dokumen_pendukung: data.faktur.dokumen_pendukung || '',
+        referensi: data.faktur.referensi || '',
+        cap_fasilitas: data.faktur.cap_fasilitas || '',
+        id_tku_penjual: data.faktur.id_tku_penjual || '',
+        npwp_nik_pembeli: data.faktur.npwp_nik_pembeli || '',
+        jenis_id_pembeli: data.faktur.jenis_id_pembeli || 'TIN',
+        negara_pembeli: data.faktur.negara_pembeli || 'IDN',
+        nomor_dokumen_pembeli: data.faktur.nomor_dokumen_pembeli || '',
+        nama_pembeli: data.faktur.nama_pembeli || '',
+        alamat_pembeli: data.faktur.alamat_pembeli || '',
+        id_tku_pembeli: data.faktur.id_tku_pembeli || '',
+        nomor_faktur_pajak: data.faktur.nomor_faktur_pajak || '',
+        status_faktur: data.faktur.status_faktur || '',
+        tipe_transaksi: data.faktur.tipe_transaksi || ''
+      };
+      
+      // For date fields that might come as string from API but need to be formatted for form
+      if (typeof savedFaktur.tanggal_faktur === 'string' && savedFaktur.tanggal_faktur.includes('T')) {
+        // Format ISO date string to YYYY-MM-DD for input[type="date"]
+        savedFaktur.tanggal_faktur = savedFaktur.tanggal_faktur.split('T')[0];
+      }
+      
+      // Transform detail items
+      const savedDetails = Array.isArray(data.details) ? data.details.map((detail: any): DetailFakturData => ({
+        id_detail_faktur: detail.id_detail_faktur,
+        id_faktur: detail.id_faktur,
+        barang_or_jasa: detail.barang_or_jasa || '',
+        kode_barang_or_jasa: detail.kode_barang_or_jasa || '',
+        nama_barang_or_jasa: detail.nama_barang_or_jasa || '',
+        nama_satuan_ukur: detail.nama_satuan_ukur || '',
+        harga_satuan: detail.harga_satuan?.toString() || '0',
+        jumlah_barang_jasa: (detail.barang_or_jasa === 'a' 
+          ? detail.jumlah_barang 
+          : detail.jumlah_jasa)?.toString() || '0',
+        jumlah_barang: detail.jumlah_barang?.toString() || '0',
+        jumlah_jasa: detail.jumlah_jasa?.toString() || '0',
+        total_diskon: detail.diskon_persen?.toString() || '0',
+        dpp: detail.dpp?.toString() || '0',
+        dpp_nilai_lain: detail.dpp_nilai_lain?.toString() || '0',
+        tarif_ppn: detail.tarif_ppn?.toString() || '12.00',
+        ppn: detail.ppn?.toString() || '0',
+        tarif_ppnbm: detail.tarif_ppnbm?.toString() || '0',
+        ppnbm: detail.ppnbm?.toString() || '0'
+      })) : [];
+      
+      return {
+        faktur: savedFaktur as FakturData & { id: string },
+        details: savedDetails
+      };
+    } catch (error) {
+      console.error('Error saving faktur with details:', error);
+      throw error;
+    }
+  }
   // Get fakturs with pagination and filters
   static async getFakturs(params: PaginationParams = {}): Promise<PaginatedResponse<FakturData & { id: string }>> {
     const { 

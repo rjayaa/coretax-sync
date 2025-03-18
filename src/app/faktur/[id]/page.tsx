@@ -144,12 +144,12 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
           <p className="text-gray-500">ID: {faktur.id}</p>
         </div>
         <div className="flex space-x-3">
-          <Link 
+          {/* <Link 
             href={`/faktur/${faktur.id}/edit`}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Edit Faktur
-          </Link>
+          </Link> */}
           <button
             onClick={() => router.back()}
             className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
@@ -403,12 +403,12 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
       
       {/* Action Buttons */}
       <div className="flex justify-end space-x-3">
-        <Link
+        {/* <Link
           href={`/faktur/${faktur.id}/edit`}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Edit Faktur
-        </Link>
+        </Link> */}
         {faktur.status_faktur === 'CREATED' && (
           <button
             onClick={() => window.confirm('Anda yakin ingin menghapus faktur ini?')}

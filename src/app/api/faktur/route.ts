@@ -1,8 +1,7 @@
-// src/app/api/faktur/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
-import { desc, sql, and, eq, like, or, isNull, not } from 'drizzle-orm';
+import { desc, sql, and, eq, like, or, isNull, not, gte, lte } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -15,6 +14,29 @@ export async function GET(req: NextRequest) {
     const status = url.searchParams.get('status');
     const synced = url.searchParams.get('synced');
     const search = url.searchParams.get('search');
+    
+    // Get company NPWP filter
+    const npwpPenjual = url.searchParams.get('npwp_penjual') || 
+                        url.searchParams.get('npwp_company') ||
+                        url.searchParams.get('company_npwp');
+    
+    // Parse date range parameters (check multiple possible parameter names)
+    const startDate = url.searchParams.get('tanggalMulai') || 
+                      url.searchParams.get('startDate') || 
+                      url.searchParams.get('start_date') ||
+                      url.searchParams.get('tanggal_faktur_start');
+                      
+    const endDate = url.searchParams.get('tanggalAkhir') || 
+                    url.searchParams.get('endDate') || 
+                    url.searchParams.get('end_date') ||
+                    url.searchParams.get('tanggal_faktur_end');
+    
+    // Log all parameters for debugging
+    console.log('Filter parameters:', {
+      page, limit, status, synced, search, 
+      startDate, endDate, npwpPenjual,
+      rawParams: Object.fromEntries(url.searchParams.entries())
+    });
     
     // Calculate offset
     const offset = (page - 1) * limit;
@@ -43,6 +65,33 @@ export async function GET(req: NextRequest) {
       );
     }
     
+    // Filter by company NPWP
+    if (npwpPenjual) {
+      conditions.push(eq(faktur.npwp_penjual, npwpPenjual));
+    }
+    
+    // Add date range conditions
+    if (startDate) {
+      try {
+        // Use native SQL for more reliable date comparison
+        conditions.push(sql`DATE(${faktur.tanggal_faktur}) >= ${startDate}`);
+      } catch (err) {
+        console.error('Error with start date filter:', err);
+      }
+    }
+    
+    if (endDate) {
+      try {
+        // Use native SQL for more reliable date comparison
+        conditions.push(sql`DATE(${faktur.tanggal_faktur}) <= ${endDate}`);
+      } catch (err) {
+        console.error('Error with end date filter:', err);
+      }
+    }
+    
+    // Log the final conditions for debugging
+    console.log('Query conditions:', conditions);
+    
     // Count total records with filters
     const totalQuery = db.select({ count: sql`COUNT(*)` }).from(faktur);
     
@@ -60,6 +109,7 @@ export async function GET(req: NextRequest) {
       tanggal_faktur: faktur.tanggal_faktur,
       nama_pembeli: faktur.nama_pembeli,
       npwp_nik_pembeli: faktur.npwp_nik_pembeli,
+      kode_transaksi: faktur.kode_transaksi,
       status_faktur: faktur.status_faktur,
       nomor_faktur_pajak: faktur.nomor_faktur_pajak,
       is_uploaded_to_coretax: faktur.is_uploaded_to_coretax
@@ -72,7 +122,7 @@ export async function GET(req: NextRequest) {
     
     // Apply pagination
     const fakturs = await query
-      .orderBy(desc(sql`createdAt`))
+      .orderBy(desc(faktur.tanggal_faktur)) // Changed to order by tanggal_faktur instead of createdAt
       .limit(limit)
       .offset(offset);
     
@@ -96,7 +146,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
