@@ -1,7 +1,7 @@
-
 // app/(auth)/login/page.tsx
 import Image from "next/image";
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import { LoginForm } from "@/components/LoginForm";
 
 export const metadata: Metadata = {
@@ -56,8 +56,10 @@ export default function LoginPage() {
               </div>
             </div>
             
-            {/* Login Form */}
-            <LoginForm />
+            {/* Login Form with Suspense boundary */}
+            <Suspense fallback={<div className="text-white text-center py-4">Loading form...</div>}>
+              <LoginForm />
+            </Suspense>
           </div>
 
           {/* Footer */}

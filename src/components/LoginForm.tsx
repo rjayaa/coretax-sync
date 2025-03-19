@@ -24,18 +24,23 @@ type FormValues = z.infer<typeof formSchema>;
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
   // Get the callbackUrl from URL params, default to dashboard
-  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
+  const callbackUrl = searchParams ? searchParams.get("callbackUrl") || "/dashboard" : "/dashboard";
 
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace(callbackUrl);
+      // Small delay to ensure state is properly updated
+      const redirectTimer = setTimeout(() => {
+        router.replace(callbackUrl);
+      }, 100);
+      
+      return () => clearTimeout(redirectTimer);
     }
   }, [status, router, callbackUrl]);
 
@@ -82,8 +87,9 @@ export function LoginForm() {
         localStorage.removeItem('rememberMe');
       }
 
-      // Successful login - let the useEffect handle the redirect
-      // The session will be updated automatically
+      // Session will be updated automatically through the useSession hook
+      // which will trigger the useEffect for redirection
+      
     } catch (error) {
       setError("An error occurred during login");
       console.error("Login error:", error);
