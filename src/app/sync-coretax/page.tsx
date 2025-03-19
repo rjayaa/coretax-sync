@@ -14,6 +14,8 @@ export default function SyncCoretaxPage() {
   const [syncStatus, setSyncStatus] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(true);
+  // Add state to track whether to show all items
+  const [showAllDetails, setShowAllDetails] = useState(false);
   const router = useRouter();
 
   // Mengambil status sinkronisasi saat halaman dimuat
@@ -301,7 +303,8 @@ export default function SyncCoretaxPage() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {syncResult.details.slice(0, 10).map((item: any, index: number) => (
+                          {/* Update this line to show all items or just the first 10 based on state */}
+                          {(showAllDetails ? syncResult.details : syncResult.details.slice(0, 10)).map((item: any, index: number) => (
                             <tr key={index} className={`hover:bg-gray-50 ${item.status === 'not_found' ? 'bg-red-50' : ''}`}>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.reference}</td>
                               <td className="px-4 py-3 text-sm">
@@ -339,10 +342,13 @@ export default function SyncCoretaxPage() {
                     {syncResult.details.length > 10 && (
                       <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-center">
                         <p className="text-xs text-gray-500">
-                          Menampilkan 10 dari {syncResult.details.length} data
+                          Menampilkan {showAllDetails ? syncResult.details.length : 10} dari {syncResult.details.length} data
                         </p>
-                        <button className="mt-1 px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
-                          Lihat Semua
+                        <button 
+                          onClick={() => setShowAllDetails(!showAllDetails)}
+                          className="mt-1 px-3 py-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          {showAllDetails ? 'Tampilkan Lebih Sedikit' : 'Lihat Semua'}
                         </button>
                       </div>
                     )}
