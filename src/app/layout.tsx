@@ -52,8 +52,8 @@ import { SessionProvider } from '@/components/SessionProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Sistem Faktur & Coretax',
-  description: 'Manajemen faktur pajak dan integrasi dengan Coretax',
+  title: 'Coretax Sync MAA',
+  description: 'Manajemen faktur pajak dan integrasi dengan Coretax MAA',
 };
 
 export default function RootLayout({
