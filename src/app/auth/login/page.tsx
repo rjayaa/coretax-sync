@@ -5,9 +5,9 @@ import { Metadata } from 'next';
 import { LoginForm } from "@/components/LoginForm";
 
 export const metadata: Metadata = {
-  title: 'Import Tax - Login',
-  description: 'Tax Integration to CoreTaxs',
-}
+  title: 'Coretax Sync MAA',
+  description: 'Manajemen faktur pajak dan integrasi dengan Coretax MAA',
+};
 
 export default function LoginPage() {
   const currentYear = new Date().getFullYear();
