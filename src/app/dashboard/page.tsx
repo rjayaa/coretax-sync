@@ -126,11 +126,20 @@ export default function DashboardPage() {
           )}
         </div>
         
-        <div className="bg-blue-600 bg-opacity-10 border border-blue-200 rounded-lg p-4 text-blue-800">
-          <p className="text-sm">
-            <span className="font-medium">Selamat datang di dashboard Coretax Sync!</span> Pantau status sinkronisasi faktur pajak Anda dengan DJP dan kelola dokumen perpajakan dengan mudah.
-          </p>
-        </div>
+   {/* Kode untuk banner selamat datang dengan warna yang lebih harmonis */}
+          <div className="bg-indigo-600 bg-opacity-10 border border-indigo-200 rounded-lg p-6">
+            <div className="flex items-start">
+              <div className="bg-indigo-100 p-2.5 rounded-full mr-4 mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-indigo-800 text-lg mb-1">Selamat datang di dashboard Coretax Sync!</h3>
+                <p className="text-sm text-indigo-700">Pantau status sinkronisasi faktur pajak Anda dengan DJP dan kelola dokumen perpajakan dengan mudah.</p>
+              </div>
+            </div>
+          </div>
       </header>
       
       {/* Quick Actions */}

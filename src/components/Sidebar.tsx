@@ -171,7 +171,7 @@ useEffect(() => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">{session?.user?.username || 'User'}</p>
-                <p className="text-xs text-gray-500 truncate">{session?.user?.email || 'user@example.com'}</p>
+                {/* <p className="text-xs text-gray-500 truncate">{session?.user?.name || 'user@example.com'}</p> */}
               </div>
               <button
                 onClick={handleLogout}
