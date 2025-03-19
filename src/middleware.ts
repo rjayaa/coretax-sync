@@ -6,7 +6,7 @@ export default withAuth(
   function middleware(req) {
     // If already logged in and trying to access login page
     if (req.nextUrl.pathname.startsWith("/auth/login") && req.nextauth.token) {
-      return NextResponse.redirect(new URL("/user/company-selection", req.url))
+      return NextResponse.redirect(new URL("/dashboard", req.url))
     }
 
     return NextResponse.next()
@@ -14,13 +14,16 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ req, token }) => {
-        // Allow public access to login page
-        if (req.nextUrl.pathname.startsWith("/auth/login")) {
+        // Allow public access to login page and root page
+        if (req.nextUrl.pathname.startsWith("/auth/login") || req.nextUrl.pathname === "/") {
           return true
         }
         // Require authentication for all other pages
         return !!token
       },
+    },
+    pages: {
+      signIn: "/auth/login",
     },
     cookies: {
       sessionToken: {
@@ -36,8 +39,9 @@ export default withAuth(
   }
 )
 
+// Perbarui matcher untuk mencakup semua rute kecuali yang eksplisit diizinkan
 export const config = {
   matcher: [
-    '/((?!auth/login|_next|api/auth|_static|favicon.ico|images).*)',
+    '/((?!_next/static|_next/image|favicon.ico|images|api/auth).*)',
   ],
 }
