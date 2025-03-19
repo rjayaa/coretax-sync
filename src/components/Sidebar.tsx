@@ -125,7 +125,8 @@ useEffect(() => {
       <div className="py-6 px-4 border-b border-gray-200 flex items-center justify-between">
         {!isCollapsed && (
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center mr-3">
+            <div className="w-8 h-8 rounded-md flex items-center justify-center mr-3" 
+                 style={{ background: 'linear-gradient(to right, #890707, #c61111, #e52222)' }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
               </svg>
@@ -134,7 +135,8 @@ useEffect(() => {
           </div>
         )}
         {isCollapsed && (
-          <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center mx-auto">
+          <div className="w-8 h-8 rounded-md flex items-center justify-center mx-auto"
+               style={{ background: 'linear-gradient(to right, #890707, #c61111, #e52222)' }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
             </svg>
@@ -142,7 +144,7 @@ useEffect(() => {
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
@@ -163,7 +165,8 @@ useEffect(() => {
           <div className="p-4">
             {/* User Profile */}
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold mr-3 shadow-sm">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold mr-3 shadow-sm"
+                   style={{ background: 'linear-gradient(to right, #890707, #c61111, #e52222)' }}>
                 {getUserInitials()}
               </div>
               <div className="flex-1 min-w-0">
@@ -188,7 +191,7 @@ useEffect(() => {
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">Company</label>
                 <button
                   onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                  className="w-full flex items-center justify-between p-2.5 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                  className="w-full flex items-center justify-between p-2.5 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
                   aria-expanded={isCompanyDropdownOpen}
                   aria-haspopup="listbox"
                 >
@@ -208,7 +211,7 @@ useEffect(() => {
                         onClick={() => handleCompanySelect(company)}
                         className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-100 focus:bg-gray-100 transition-colors ${
                           selectedCompany?.company_code === company.company_code 
-                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' 
+                            ? 'bg-red-50 text-red-700 border-l-4 border-red-600' 
                             : 'border-l-4 border-transparent'
                         }`}
                         role="option"
@@ -225,7 +228,8 @@ useEffect(() => {
           </div>
         ) : (
           <div className="py-4 flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold shadow-sm">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm"
+                 style={{ background: 'linear-gradient(to right, #890707, #c61111, #e52222)' }}>
               {getUserInitials()}
             </div>
             {selectedCompany && (
@@ -258,11 +262,12 @@ useEffect(() => {
                 href={item.href}
                 className={`${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'text-white shadow-md'
                     : 'text-gray-700 hover:bg-gray-100'
                 } flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
                   !isCollapsed ? 'justify-start' : 'justify-center'
                 }`}
+                style={isActive ? { background: 'linear-gradient(to right, #890707, #c61111, #e52222)' } : {}}
                 aria-current={isActive ? 'page' : undefined}
               >
                 <span className={`${!isCollapsed ? 'mr-3' : ''}`}>{item.icon}</span>

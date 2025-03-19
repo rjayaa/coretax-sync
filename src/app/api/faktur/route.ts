@@ -32,11 +32,11 @@ export async function GET(req: NextRequest) {
                     url.searchParams.get('tanggal_faktur_end');
     
     // Log all parameters for debugging
-    console.log('Filter parameters:', {
-      page, limit, status, synced, search, 
-      startDate, endDate, npwpPenjual,
-      rawParams: Object.fromEntries(url.searchParams.entries())
-    });
+    // console.log('Filter parameters:', {
+    //   page, limit, status, synced, search, 
+    //   startDate, endDate, npwpPenjual,
+    //   rawParams: Object.fromEntries(url.searchParams.entries())
+    // });
     
     // Calculate offset
     const offset = (page - 1) * limit;

@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CoretaxService } from '@/lib/services/coretax-service';
 
+// Remove the custom type and use the inline type definition
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

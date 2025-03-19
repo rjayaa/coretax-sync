@@ -19,6 +19,7 @@ import {
 import { generateExcelFile } from '@/lib/utils/excelGenerator';
 import { generateInternalRecapExcelFile } from '@/lib/utils/excelGeneratorInternal';
 import { FakturData, DetailFakturData } from '@/types/faktur';
+import Loading from '@/components/Loading';
 
 // Define extended types for local use
 interface FakturWithId extends FakturData {
@@ -344,15 +345,9 @@ export default function ExportPage() {
     setExportDropdownOpen(false);
   };
 
+  // Replace the full-page loading with the Loading component
   if (isLoading && fakturs.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Memuat data faktur...</p>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   const filteredFakturs = getFilteredFakturs();
@@ -660,10 +655,11 @@ export default function ExportPage() {
           <h2 className="text-sm font-medium text-gray-700">
             {fakturs.length} Faktur Tersedia
           </h2>
+          {/* Replace inline loading with a more appropriate inline spinner */}
           {isLoading && fakturs.length > 0 && (
             <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-              <span className="text-sm text-gray-500">Memperbarui data...</span>
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-red-600 mr-2"></div>
+              <span className="text-sm text-gray-500">Memuat...</span>
             </div>
           )}
         </div>

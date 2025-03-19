@@ -165,7 +165,12 @@ export function LoginForm() {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-white/10 hover:bg-white/20 text-white"
+          className="login-btn w-full font-semibold tracking-wider py-3 mt-4 relative overflow-hidden"
+          style={{
+            background: "linear-gradient(to right, #890707, #c61111, #e52222)",
+            boxShadow: "0 4px 15px rgba(137, 7, 7, 0.3)",
+            transition: "all 0.3s",
+          }}
         >
           {isLoading ? (
             <>
@@ -176,6 +181,38 @@ export function LoginForm() {
             'Sign in'
           )}
         </Button>
+
+        <style jsx>{`
+          .login-btn:hover {
+            background: linear-gradient(to right, #750606, #b30f0f, #d71f1f) !important;
+            box-shadow: 0 5px 20px rgba(137, 7, 7, 0.5);
+            transform: translateY(-2px);
+          }
+
+          .login-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(137, 7, 7, 0.4);
+          }
+
+          .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.3) 50%,
+                    rgba(255, 255, 255, 0) 100%);
+            transform: skewX(-25deg);
+            transition: all 0.75s;
+          }
+
+          .login-btn:hover::before {
+            left: 100%;
+          }
+        `}</style>
       </form>
     </Form>
   );
