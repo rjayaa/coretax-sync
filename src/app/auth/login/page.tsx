@@ -44,7 +44,7 @@ export default function LoginPage() {
 
             {/* Title & Subtitle */}
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-semibold text-white mb-2">Import Tax Login</h1>
+              <h1 className="text-2xl font-semibold text-white mb-2">Coretax Sync</h1>
               <div className="flex items-center justify-center gap-2 text-gray-200">
                 Tax Integration to CoreTax
                 <Image 
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="text-center mt-4 text-sm text-gray-300">
-            &copy; {currentYear} Import Tax Portal{' '}
+            &copy; {currentYear} Coretax Sync{' '}
             <span className="text-red-500">❤</span> by Mineral Alam Abadi
           </div>
         </div>
