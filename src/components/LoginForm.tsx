@@ -28,21 +28,23 @@ export function LoginForm() {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   // Get the callbackUrl from URL params, default to dashboard
   const callbackUrl = searchParams ? searchParams.get("callbackUrl") || "/dashboard" : "/dashboard";
 
-  // Auto-redirect if already authenticated
+  // Auto-redirect if already authenticated (fallback mechanism)
   useEffect(() => {
-    if (status === "authenticated") {
-      // Small delay to ensure state is properly updated
+    if (status === "authenticated" && !isRedirecting) {
+      // Using a longer timeout to ensure state is properly updated
       const redirectTimer = setTimeout(() => {
+        setIsRedirecting(true);
         router.replace(callbackUrl);
-      }, 100);
+      }, 500);
       
       return () => clearTimeout(redirectTimer);
     }
-  }, [status, router, callbackUrl]);
+  }, [status, router, callbackUrl, isRedirecting]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -63,6 +65,8 @@ export function LoginForm() {
   }, [form]);
 
   async function onSubmit(data: FormValues) {
+    if (isRedirecting) return; // Prevent multiple submissions
+    
     setIsLoading(true);
     setError("");
 
@@ -87,13 +91,17 @@ export function LoginForm() {
         localStorage.removeItem('rememberMe');
       }
 
-      // Session will be updated automatically through the useSession hook
-      // which will trigger the useEffect for redirection
+      // Direct redirection after successful login instead of waiting for useSession
+      setIsRedirecting(true);
+      router.replace(callbackUrl);
+      
+      // No need to reset isLoading since we're redirecting anyway
       
     } catch (error) {
       setError("An error occurred during login");
       console.error("Login error:", error);
       setIsLoading(false);
+      setIsRedirecting(false);
     }
   }
 
@@ -119,7 +127,7 @@ export function LoginForm() {
                 <div className="relative">
                   <Input
                     {...field}
-                    disabled={isLoading}
+                    disabled={isLoading || isRedirecting}
                     placeholder="Username"
                     className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                   />
@@ -140,7 +148,7 @@ export function LoginForm() {
                   <Input
                     {...field}
                     type={showPassword ? "text" : "password"}
-                    disabled={isLoading}
+                    disabled={isLoading || isRedirecting}
                     placeholder="Password"
                     className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                   />
@@ -149,6 +157,7 @@ export function LoginForm() {
                     type="button"
                     onClick={togglePasswordVisibility}
                     className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-300 focus:outline-none"
+                    disabled={isLoading || isRedirecting}
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -171,6 +180,7 @@ export function LoginForm() {
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={isLoading || isRedirecting}
                   className="bg-white/10 border-white/20 data-[state=checked]:bg-white/20"
                 />
               </FormControl>
@@ -183,7 +193,7 @@ export function LoginForm() {
 
         <Button
           type="submit"
-          disabled={isLoading || status === "loading"}
+          disabled={isLoading || isRedirecting || status === "loading"}
           className="login-btn w-full font-semibold tracking-wider py-3 mt-4 relative overflow-hidden"
           style={{
             background: "linear-gradient(to right, #890707, #c61111, #e52222)",
@@ -191,10 +201,10 @@ export function LoginForm() {
             transition: "all 0.3s",
           }}
         >
-          {isLoading || status === "loading" ? (
+          {isLoading || isRedirecting || status === "loading" ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Signing in...
+              {isRedirecting ? 'Redirecting...' : 'Signing in...'}
             </>
           ) : (
             'Sign in'
