@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,21 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { status } = useSession();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Get the callbackUrl from URL params, default to dashboard
+  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace(callbackUrl);
+    }
+  }, [status, router, callbackUrl]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -54,10 +66,12 @@ export function LoginForm() {
         username: data.username,
         password: data.password,
         redirect: false,
+        callbackUrl: callbackUrl,
       });
 
       if (res?.error) {
         setError("Invalid username or password");
+        setIsLoading(false);
         return;
       }
 
@@ -68,12 +82,11 @@ export function LoginForm() {
         localStorage.removeItem('rememberMe');
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      // Successful login - let the useEffect handle the redirect
+      // The session will be updated automatically
     } catch (error) {
       setError("An error occurred during login");
       console.error("Login error:", error);
-    } finally {
       setIsLoading(false);
     }
   }
@@ -164,7 +177,7 @@ export function LoginForm() {
 
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || status === "loading"}
           className="login-btn w-full font-semibold tracking-wider py-3 mt-4 relative overflow-hidden"
           style={{
             background: "linear-gradient(to right, #890707, #c61111, #e52222)",
@@ -172,7 +185,7 @@ export function LoginForm() {
             transition: "all 0.3s",
           }}
         >
-          {isLoading ? (
+          {isLoading || status === "loading" ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Signing in...

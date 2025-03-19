@@ -6,6 +6,19 @@ export default withAuth(
   function middleware(req) {
     // If already logged in and trying to access login page
     if (req.nextUrl.pathname.startsWith("/auth/login") && req.nextauth.token) {
+      // Get callbackUrl if it exists, otherwise redirect to dashboard
+      const callbackUrl = req.nextUrl.searchParams.get("callbackUrl")
+      const redirectUrl = callbackUrl || "/dashboard"
+      
+      // Make sure the URL is properly decoded
+      const decodedUrl = decodeURIComponent(redirectUrl)
+      
+      // Only redirect to internal URLs (security measure)
+      if (decodedUrl.startsWith("/")) {
+        return NextResponse.redirect(new URL(decodedUrl, req.url))
+      }
+      
+      // Fallback to dashboard for external URLs
       return NextResponse.redirect(new URL("/dashboard", req.url))
     }
 
@@ -14,34 +27,31 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ req, token }) => {
-        // Allow public access to login page and root page
-        if (req.nextUrl.pathname.startsWith("/auth/login") || req.nextUrl.pathname === "/") {
+        // Public paths that don't require authentication
+        if (
+          req.nextUrl.pathname.startsWith("/auth") || 
+          req.nextUrl.pathname === "/" ||
+          req.nextUrl.pathname.startsWith("/api/auth")
+        ) {
           return true
         }
-        // Require authentication for all other pages
+        
+        // All other paths require authentication
         return !!token
       },
     },
     pages: {
       signIn: "/auth/login",
     },
-    cookies: {
-      sessionToken: {
-        name: 'next-auth.session-token',
-        options: {
-          httpOnly: true,
-          sameSite: 'lax',
-          path: '/',
-          secure: process.env.NODE_ENV === 'production',
-        },
-      },
-    },
   }
 )
 
-// Perbarui matcher untuk mencakup semua rute kecuali yang eksplisit diizinkan
+// Match all routes except for API auth routes, static files, etc.
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|images|api/auth).*)',
+    // Exclude Next.js internals
+    '/((?!_next/static|_next/image|_next/data|favicon.ico|images).*)',
+    // Include all pages
+    '/',
   ],
 }
