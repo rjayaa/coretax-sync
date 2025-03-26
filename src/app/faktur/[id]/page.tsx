@@ -1,44 +1,26 @@
-// src/app/faktur/[id]/page.tsx
+
+//src/app/faktur/[id]/page.tsx
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Loading from '@/components/Loading';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import StatusBadge from '@/components/StatusBadge';
+import { FakturData, DetailFakturData } from '@/types/faktur';
 
 type FakturDetailProps = {
   params: { id: string };
 };
 
-type FakturData = {
+type FakturDataWithId = FakturData & {
   id: string;
-  npwp_penjual: string;
-  tanggal_faktur: string;
-  jenis_faktur: string;
-  referensi: string;
-  nama_pembeli: string;
-  alamat_pembeli: string;
-  npwp_nik_pembeli: string;
-  status_faktur: string;
-  nomor_faktur_pajak: string;
   coretax_record_id: string | null;
   is_uploaded_to_coretax: boolean;
   last_sync_date: string | null;
   amended_from_faktur_id: string | null;
-  // Add other properties as needed
-};
-
-type DetailFakturData = {
-  id_detail_faktur: string;
-  nama_barang_or_jasa: string;
-  nama_satuan_ukur: string;
-  jumlah_barang: number;
-  harga_satuan: string;
-  dpp: string;
-  ppn: string;
-  // Add other properties as needed
 };
 
 type CoretaxData = {
@@ -50,16 +32,44 @@ type CoretaxData = {
   creation_date: string;
   last_updated_date: string;
   amended_record_id: string | null;
-  // Add other properties as needed
+};
+
+// Definisi tipe untuk item dalam rantai transaksi
+type ChainItem = FakturDataWithId & {
+  detailCount: number;
+  totalDPP: number;
+  totalPPN: number;
+  grandTotal: number;
+  transactionType: string;
+};
+
+// Definisi tipe untuk respons transaksi terkait
+type RelatedTransactions = {
+  original: FakturDataWithId;
+  related: FakturDataWithId[];
+  chain: ChainItem[];
 };
 
 export default function FakturDetailPage({ params }: FakturDetailProps) {
-  const [faktur, setFaktur] = useState<FakturData | null>(null);
+  const [faktur, setFaktur] = useState<FakturDataWithId | null>(null);
   const [detailItems, setDetailItems] = useState<DetailFakturData[]>([]);
   const [coretaxData, setCoretaxData] = useState<CoretaxData | null>(null);
-  const [amendedFakturs, setAmendedFakturs] = useState<FakturData[]>([]);
+  const [amendedFakturs, setAmendedFakturs] = useState<FakturDataWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+const [relatedTransactions, setRelatedTransactions] = useState<{
+  original: FakturDataWithId;
+  related: FakturDataWithId[];
+  chain: ChainItem[];
+  detailItems: Record<string, DetailFakturData[]>;
+}>({
+  original: {} as FakturDataWithId,
+  related: [],
+  chain: [],
+  detailItems: {}
+});
+
+
   const router = useRouter();
 
   useEffect(() => {
@@ -95,6 +105,13 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
             const amendedData = await amendedResponse.json();
             setAmendedFakturs(amendedData);
           }
+        }
+        
+        // Fetch transaksi terkait (rantai DP-Pelunasan)
+        const relatedResponse = await fetch(`/api/faktur/${params.id}/related`);
+        if (relatedResponse.ok) {
+          const relatedData = await relatedResponse.json();
+          setRelatedTransactions(relatedData);
         }
       } catch (err: any) {
         setError(err.message);
@@ -180,7 +197,7 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
       }`}>
         <div>
           <span className="font-semibold">Status: </span>
-          <StatusBadge status={faktur.status_faktur} type="faktur" />
+          <StatusBadge status={faktur.status_faktur || ''} type="faktur" />
         </div>
         
         <div>
@@ -235,6 +252,91 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
           </div>
         </div>
       </div>
+
+      {/* Transaksi Terkait (Rantai DP-Pelunasan) di bagian atas */}
+      {relatedTransactions.chain && relatedTransactions.chain.length > 1 && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Rantai Transaksi (DP-Pelunasan)</h2>
+          <p className="text-sm text-gray-500 mb-3">
+            Menampilkan rangkaian transaksi dari DP hingga pelunasan untuk referensi {faktur.referensi?.split('/')[0]}.
+          </p>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referensi</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total DPP</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total PPN</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {relatedTransactions.chain.map((item, index) => {
+                  const isCurrentFaktur = item.id === faktur.id;
+                  return (
+                    <tr key={index} className={isCurrentFaktur ? "bg-blue-50" : ""}>
+                      <td className="px-3 py-2 text-sm font-medium">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                          item.transactionType === "DP" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                        }`}>
+                          {item.transactionType}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900">{item.referensi || "-"}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900">
+                        {new Date(item.tanggal_faktur).toLocaleDateString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-sm">
+                        <StatusBadge status={item.status_faktur || "UNKNOWN"} type="faktur" />
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900">
+                        {item.totalDPP.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900">
+                        {item.totalPPN.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900 font-medium">
+                        {item.grandTotal.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-sm">
+                        {isCurrentFaktur ? (
+                          <span className="text-blue-600 font-medium">Sedang Dilihat</span>
+                        ) : (
+                          <Link href={`/faktur/${item.id}`} className="text-blue-600 hover:underline">
+                            Lihat Detail
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              {/* {relatedTransactions.chain.length > 1 && (
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td colSpan={4} className="px-3 py-2 text-sm font-bold text-right">Total Keseluruhan:</td>
+                    <td className="px-3 py-2 text-sm font-bold text-gray-900">
+                      {relatedTransactions.chain.reduce((sum, item) => sum + item.totalDPP, 0).toLocaleString('id-ID')}
+                    </td>
+                    <td className="px-3 py-2 text-sm font-bold text-gray-900">
+                      {relatedTransactions.chain.reduce((sum, item) => sum + item.totalPPN, 0).toLocaleString('id-ID')}
+                    </td>
+                    <td className="px-3 py-2 text-sm font-bold text-gray-900">
+                      {relatedTransactions.chain.reduce((sum, item) => sum + item.grandTotal, 0).toLocaleString('id-ID')}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              )} */}
+            </table>
+          </div>
+        </div>
+      )}
       
       {/* Coretax Data */}
       {coretaxData && (
@@ -287,13 +389,13 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
             </div>
           </div>
           
-          {coretaxData.amended_record_id && (
+          {/* {coretaxData.amended_record_id && (
             <div className="mt-4 p-3 bg-orange-50 rounded-md">
               <p className="text-sm text-orange-700">
                 <strong>Perhatian:</strong> Faktur ini adalah amendemen dari faktur lain dengan Record ID: {coretaxData.amended_record_id}
               </p>
             </div>
-          )}
+          )} */}
         </div>
       )}
       
@@ -324,7 +426,7 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
                       {new Date(item.tanggal_faktur).toLocaleDateString('id-ID')}
                     </td>
                     <td className="px-3 py-2 text-sm">
-                      <StatusBadge status={item.status_faktur} type="faktur" />
+                      <StatusBadge status={item.status_faktur || ''} type="faktur" />
                     </td>
                     <td className="px-3 py-2 text-sm text-gray-900">
                       {item.nomor_faktur_pajak || '(Belum Ada)'}
@@ -341,65 +443,150 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
           </div>
         </div>
       )}
-      
-      {/* Detail Items */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Detail Barang/Jasa</h2>
-        
-        {detailItems.length === 0 ? (
-          <p className="text-gray-500">Belum ada data detail faktur.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Barang/Jasa</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Satuan</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Satuan</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">DPP</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">PPN</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {detailItems.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-3 py-2 text-sm text-gray-900">{item.nama_barang_or_jasa}</td>
-                    <td className="px-3 py-2 text-sm text-gray-900">{item.nama_satuan_ukur}</td>
-                    <td className="px-3 py-2 text-sm text-gray-900">{item.jumlah_barang}</td>
-                    <td className="px-3 py-2 text-sm text-gray-900">
-                      {parseFloat(item.harga_satuan).toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-3 py-2 text-sm text-gray-900">
-                      {parseFloat(item.dpp).toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-3 py-2 text-sm text-gray-900">
-                      {parseFloat(item.ppn).toLocaleString('id-ID')}
+
+
+
+{/* Detail Items - Including All Related Transactions */}
+<div className="bg-white rounded-lg shadow-md p-6 mb-6">
+  <h2 className="text-xl font-semibold mb-4">Detail Barang/Jasa dan Perhitungan DP-Pelunasan</h2>
+  
+  {detailItems.length === 0 && Object.keys(relatedTransactions.detailItems).length === 0 ? (
+    <p className="text-gray-500">Belum ada data detail faktur.</p>
+  ) : (
+    <>
+      {/* Tabel detail barang/jasa */}
+      <div className="overflow-x-auto mb-6">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transaksi</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referensi</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Barang/Jasa</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Satuan</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Satuan</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">DPP</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">PPN</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {relatedTransactions.chain.map((chainItem) => {
+              const isCurrentFaktur = chainItem.id === faktur.id;
+              const itemDetails = isCurrentFaktur 
+                ? detailItems 
+                : (relatedTransactions.detailItems[chainItem.id] || []);
+              
+              return (
+                <React.Fragment key={chainItem.id}>
+                  {/* Header untuk transaksi */}
+                  <tr className={`${isCurrentFaktur ? 'bg-blue-100' : 'bg-gray-100'} border-t-2 border-gray-300`}>
+                    <td colSpan={8} className="px-3 py-2 text-sm font-medium">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className={`inline-block px-2 py-1 mr-2 rounded text-xs font-medium ${
+                            chainItem.transactionType === "DP" ? "bg-blue-200 text-blue-800" : "bg-green-200 text-green-800"
+                          }`}>
+                            {chainItem.transactionType}
+                          </span>
+                          <span className="font-medium">{chainItem.referensi} ({new Date(chainItem.tanggal_faktur).toLocaleDateString('id-ID')})</span>
+                        </div>
+                        {!isCurrentFaktur && (
+                          <Link href={`/faktur/${chainItem.id}`} className="text-blue-600 hover:underline text-xs">
+                            Lihat detail faktur
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50">
-                <tr>
-                  <td colSpan={4} className="px-3 py-2 text-sm font-bold text-right">Total:</td>
-                  <td className="px-3 py-2 text-sm font-bold text-gray-900">
-                    {totalDPP.toLocaleString('id-ID')}
-                  </td>
-                  <td className="px-3 py-2 text-sm font-bold text-gray-900">
-                    {totalPPN.toLocaleString('id-ID')}
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={4} className="px-3 py-2 text-sm font-bold text-right">Grand Total:</td>
-                  <td colSpan={2} className="px-3 py-2 text-sm font-bold text-gray-900">
-                    {grandTotal.toLocaleString('id-ID')}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
+                  
+                  {/* Detail barang/jasa untuk transaksi ini */}
+                  {itemDetails.map((item, index) => (
+                    <tr key={`${chainItem.id}-${index}`} className={isCurrentFaktur ? "bg-blue-50" : ""}>
+                      <td className="px-3 py-2 text-sm"></td>
+                      <td className="px-3 py-2 text-sm text-gray-900"></td>
+                      <td className="px-3 py-2 text-sm text-gray-900">{item.nama_barang_or_jasa}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900">{item.nama_satuan_ukur}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900">{item.jumlah_barang}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900">
+                        {parseFloat(item.harga_satuan).toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900">
+                        {parseFloat(item.dpp).toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900">
+                        {parseFloat(item.ppn).toLocaleString('id-ID')}
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
+      
+      
+      {relatedTransactions.chain && relatedTransactions.chain.length > 1 && (
+        <div className="border rounded-lg p-4 bg-gray-50">
+          {/* <h3 className="text-lg font-semibold mb-3">Rincian Perhitungan DP-Pelunasan</h3> */}
+          
+          {/* {(() => {
+            // Identifikasi transaksi DP dan Pelunasan
+            const dpTransactions = relatedTransactions.chain.filter(item => item.transactionType === "DP");
+            const pelunasanTransactions = relatedTransactions.chain.filter(item => item.transactionType === "Pelunasan");
+            
+            // Hitung total DPP dan PPN untuk DP dan Pelunasan
+            const totalDpDpp = dpTransactions.reduce((sum, item) => sum + item.totalDPP, 0);
+            const totalDpPpn = dpTransactions.reduce((sum, item) => sum + item.totalPPN, 0);
+            const totalDpGrand = totalDpDpp + totalDpPpn;
+            
+            const totalPelunasanDpp = pelunasanTransactions.reduce((sum, item) => sum + item.totalDPP, 0);
+            const totalPelunasanPpn = pelunasanTransactions.reduce((sum, item) => sum + item.totalPPN, 0);
+            const totalPelunasanGrand = totalPelunasanDpp + totalPelunasanPpn;
+            
+            // Total nilai kontrak
+            const totalKontrakDpp = totalDpDpp + totalPelunasanDpp;
+            const totalKontrakPpn = totalDpPpn + totalPelunasanPpn;
+            const totalKontrakGrand = totalKontrakDpp + totalKontrakPpn;
+            
+            return (
+              <table className="w-full">
+                <thead className="border-b">
+                  <tr>
+                    <th className="text-left py-2">Keterangan</th>
+                    <th className="text-right py-2">DPP</th>
+                    <th className="text-right py-2">PPN</th>
+                    <th className="text-right py-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="py-2 font-medium">Nilai Total Kontrak</td>
+                    <td className="text-right py-2">{totalDpDpp.toLocaleString('id-ID')}</td>
+                    <td className="text-right py-2">{totalDpPpn.toLocaleString('id-ID')}</td>
+                    <td className="text-right py-2 font-medium">{totalDpGrand.toLocaleString('id-ID')}</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2">Nilai Pelunasan</td>
+                    <td className="text-right py-2">{totalPelunasanDpp.toLocaleString('id-ID')}</td>
+                    <td className="text-right py-2">{totalPelunasanPpn.toLocaleString('id-ID')}</td>
+                    <td className="text-right py-2">{totalPelunasanGrand.toLocaleString('id-ID')}</td>
+                  </tr>
+                  <tr className="bg-blue-50">
+                    <td className="py-2 font-medium">Nilai DP (Selisih)</td>
+                    <td className="text-right py-2 font-medium">{(totalDpDpp - totalPelunasanDpp).toLocaleString('id-ID')}</td>
+                    <td className="text-right py-2 font-medium">{(totalDpPpn - totalPelunasanPpn).toLocaleString('id-ID')}</td>
+                    <td className="text-right py-2 font-medium">{(totalDpGrand - totalPelunasanGrand).toLocaleString('id-ID')}</td>
+                  </tr>
+                </tbody>
+              </table>
+            );
+          })()} */}
+        </div>
+      )}
+    </>
+  )}
+</div>
       
       {/* Action Buttons */}
       <div className="flex justify-end space-x-3">

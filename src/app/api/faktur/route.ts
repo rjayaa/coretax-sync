@@ -1,3 +1,5 @@
+//src/app/api/faktur/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { faktur } from '@/lib/db/schema/faktur';
