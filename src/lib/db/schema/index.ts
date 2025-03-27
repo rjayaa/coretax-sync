@@ -6,6 +6,7 @@ export * from './faktur';
 export * from './detail-faktur';
 export * from './references';
 export * from './satuan-ukur';
+
 // Utility types for common patterns
 export type TimestampColumns = {
   createdAt: Date;

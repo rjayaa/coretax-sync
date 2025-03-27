@@ -1,6 +1,3 @@
-
-//src/app/faktur/[id]/page.tsx
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -10,6 +7,8 @@ import Loading from '@/components/Loading';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import StatusBadge from '@/components/StatusBadge';
 import { FakturData, DetailFakturData } from '@/types/faktur';
+import FileAttachmentSection from '@/components/FileAttachmentSection';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 type FakturDetailProps = {
   params: { id: string };
@@ -57,18 +56,19 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
   const [amendedFakturs, setAmendedFakturs] = useState<FakturDataWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-const [relatedTransactions, setRelatedTransactions] = useState<{
-  original: FakturDataWithId;
-  related: FakturDataWithId[];
-  chain: ChainItem[];
-  detailItems: Record<string, DetailFakturData[]>;
-}>({
-  original: {} as FakturDataWithId,
-  related: [],
-  chain: [],
-  detailItems: {}
-});
-
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  
+  const [relatedTransactions, setRelatedTransactions] = useState<{
+    original: FakturDataWithId;
+    related: FakturDataWithId[];
+    chain: ChainItem[];
+    detailItems: Record<string, DetailFakturData[]>;
+  }>({
+    original: {} as FakturDataWithId,
+    related: [],
+    chain: [],
+    detailItems: {}
+  });
 
   const router = useRouter();
 
@@ -112,6 +112,16 @@ const [relatedTransactions, setRelatedTransactions] = useState<{
         if (relatedResponse.ok) {
           const relatedData = await relatedResponse.json();
           setRelatedTransactions(relatedData);
+          
+          // Initialize current faktur as expanded
+          if (relatedData.chain && relatedData.chain.length > 0) {
+            const initialExpanded: Record<string, boolean> = {};
+            relatedData.chain.forEach(item => {
+              // Set the current faktur to be expanded by default
+              initialExpanded[item.id] = (item.id === fakturData.id);
+            });
+            setExpandedItems(initialExpanded);
+          }
         }
       } catch (err: any) {
         setError(err.message);
@@ -152,6 +162,32 @@ const [relatedTransactions, setRelatedTransactions] = useState<{
   const totalDPP = detailItems.reduce((sum, item) => sum + parseFloat(item.dpp), 0);
   const totalPPN = detailItems.reduce((sum, item) => sum + parseFloat(item.ppn), 0);
   const grandTotal = totalDPP + totalPPN;
+  
+  // Toggle expanded state for a transaction
+  const toggleExpand = (id: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  // Calculate grand totals for all transactions in the chain
+  const calculateChainTotals = () => {
+    if (!relatedTransactions.chain || relatedTransactions.chain.length === 0) {
+      return { dpTotal: 0, pelunasanTotal: 0, grandTotal: 0 };
+    }
+
+    const dpItems = relatedTransactions.chain.filter(item => item.transactionType === "DP");
+    const pelunasanItems = relatedTransactions.chain.filter(item => item.transactionType === "Pelunasan");
+    
+    const dpTotal = dpItems.reduce((sum, item) => sum + item.grandTotal, 0);
+    const pelunasanTotal = pelunasanItems.reduce((sum, item) => sum + item.grandTotal, 0);
+    const grandTotal = relatedTransactions.chain.reduce((sum, item) => sum + item.grandTotal, 0);
+    
+    return { dpTotal, pelunasanTotal, grandTotal };
+  };
+  
+  const { dpTotal, pelunasanTotal, grandTotal: chainGrandTotal } = calculateChainTotals();
 
   return (
     <div className="container mx-auto p-6">
@@ -161,12 +197,6 @@ const [relatedTransactions, setRelatedTransactions] = useState<{
           <p className="text-gray-500">ID: {faktur.id}</p>
         </div>
         <div className="flex space-x-3">
-          {/* <Link 
-            href={`/faktur/${faktur.id}/edit`}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Edit Faktur
-          </Link> */}
           <button
             onClick={() => router.back()}
             className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
@@ -253,92 +283,8 @@ const [relatedTransactions, setRelatedTransactions] = useState<{
         </div>
       </div>
 
-      {/* Transaksi Terkait (Rantai DP-Pelunasan) di bagian atas */}
-      {relatedTransactions.chain && relatedTransactions.chain.length > 1 && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Rantai Transaksi (DP-Pelunasan)</h2>
-          <p className="text-sm text-gray-500 mb-3">
-            Menampilkan rangkaian transaksi dari DP hingga pelunasan untuk referensi {faktur.referensi?.split('/')[0]}.
-          </p>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referensi</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total DPP</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total PPN</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {relatedTransactions.chain.map((item, index) => {
-                  const isCurrentFaktur = item.id === faktur.id;
-                  return (
-                    <tr key={index} className={isCurrentFaktur ? "bg-blue-50" : ""}>
-                      <td className="px-3 py-2 text-sm font-medium">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                          item.transactionType === "DP" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
-                        }`}>
-                          {item.transactionType}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{item.referensi || "-"}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        {new Date(item.tanggal_faktur).toLocaleDateString('id-ID')}
-                      </td>
-                      <td className="px-3 py-2 text-sm">
-                        <StatusBadge status={item.status_faktur || "UNKNOWN"} type="faktur" />
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        {item.totalDPP.toLocaleString('id-ID')}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        {item.totalPPN.toLocaleString('id-ID')}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900 font-medium">
-                        {item.grandTotal.toLocaleString('id-ID')}
-                      </td>
-                      <td className="px-3 py-2 text-sm">
-                        {isCurrentFaktur ? (
-                          <span className="text-blue-600 font-medium">Sedang Dilihat</span>
-                        ) : (
-                          <Link href={`/faktur/${item.id}`} className="text-blue-600 hover:underline">
-                            Lihat Detail
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              {/* {relatedTransactions.chain.length > 1 && (
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <td colSpan={4} className="px-3 py-2 text-sm font-bold text-right">Total Keseluruhan:</td>
-                    <td className="px-3 py-2 text-sm font-bold text-gray-900">
-                      {relatedTransactions.chain.reduce((sum, item) => sum + item.totalDPP, 0).toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-3 py-2 text-sm font-bold text-gray-900">
-                      {relatedTransactions.chain.reduce((sum, item) => sum + item.totalPPN, 0).toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-3 py-2 text-sm font-bold text-gray-900">
-                      {relatedTransactions.chain.reduce((sum, item) => sum + item.grandTotal, 0).toLocaleString('id-ID')}
-                    </td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              )} */}
-            </table>
-          </div>
-        </div>
-      )}
-      
-      {/* Coretax Data */}
+
+            {/* Coretax Data */}
       {coretaxData && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Data Coretax</h2>
@@ -388,18 +334,10 @@ const [relatedTransactions, setRelatedTransactions] = useState<{
               </div>
             </div>
           </div>
-          
-          {/* {coretaxData.amended_record_id && (
-            <div className="mt-4 p-3 bg-orange-50 rounded-md">
-              <p className="text-sm text-orange-700">
-                <strong>Perhatian:</strong> Faktur ini adalah amendemen dari faktur lain dengan Record ID: {coretaxData.amended_record_id}
-              </p>
-            </div>
-          )} */}
         </div>
       )}
-      
-      {/* Amended Fakturs */}
+
+       {/* Amended Fakturs */}
       {amendedFakturs.length > 0 && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Faktur Amendemen</h2>
@@ -443,159 +381,271 @@ const [relatedTransactions, setRelatedTransactions] = useState<{
           </div>
         </div>
       )}
-
-
-
-{/* Detail Items - Including All Related Transactions */}
-<div className="bg-white rounded-lg shadow-md p-6 mb-6">
-  <h2 className="text-xl font-semibold mb-4">Detail Barang/Jasa dan Perhitungan DP-Pelunasan</h2>
-  
-  {detailItems.length === 0 && Object.keys(relatedTransactions.detailItems).length === 0 ? (
-    <p className="text-gray-500">Belum ada data detail faktur.</p>
-  ) : (
-    <>
-      {/* Tabel detail barang/jasa */}
-      <div className="overflow-x-auto mb-6">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transaksi</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referensi</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Barang/Jasa</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Satuan</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Satuan</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">DPP</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">PPN</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+      {/* Integrated Transaction Chain & Detail Items Section */}
+      {relatedTransactions.chain && relatedTransactions.chain.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Transaksi & Detail Barang/Jasa</h2>
+          
+          {relatedTransactions.chain.length > 1 && (
+            <p className="text-sm text-gray-500 mb-4">
+              Rangkaian transaksi dari DP hingga pelunasan untuk referensi {faktur.referensi?.split('/')[0]}.
+            </p>
+          )}
+          
+          {/* Transaction Chain Summary */}
+          {relatedTransactions.chain.length > 1 && (
+            <div className="mb-6 border-b pb-4">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Referensi</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">DPP</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">PPN</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-20">Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {relatedTransactions.chain.map((item, index) => {
+                      const isCurrentFaktur = item.id === faktur.id;
+                      return (
+                        <tr 
+                          key={index} 
+                          className={isCurrentFaktur ? "bg-blue-50" : ""}
+                          onClick={() => toggleExpand(item.id)}
+                        >
+                          <td className="px-3 py-2 text-sm font-medium">
+                            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                              item.transactionType === "DP" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                            }`}>
+                              {item.transactionType}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900">{item.referensi || "-"}</td>
+                          <td className="px-3 py-2 text-sm text-gray-900">
+                            {new Date(item.tanggal_faktur).toLocaleDateString('id-ID')}
+                          </td>
+                          <td className="px-3 py-2 text-sm">
+                            <StatusBadge status={item.status_faktur || "UNKNOWN"} type="faktur" />
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900">
+                            {item.totalDPP.toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900">
+                            {item.totalPPN.toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900 font-medium">
+                            {item.grandTotal.toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-center cursor-pointer">
+                            {expandedItems[item.id] ? (
+                              <ChevronUp size={16} className="inline mx-auto" />
+                            ) : (
+                              <ChevronDown size={16} className="inline mx-auto" />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {/* Calculation Summary Row */}
+                    {relatedTransactions.chain.length > 1 && (
+                      <tr className="bg-gray-50 font-medium border-t-2 border-gray-300">
+                        {/* <td colSpan={4} className="px-3 py-2 text-sm text-right">
+                          Total Keseluruhan:
+                        </td>
+                        <td className="px-3 py-2 text-sm">
+                          {relatedTransactions.chain.reduce((sum, item) => sum + item.totalDPP, 0).toLocaleString('id-ID')}
+                        </td>
+                        <td className="px-3 py-2 text-sm">
+                          {relatedTransactions.chain.reduce((sum, item) => sum + item.totalPPN, 0).toLocaleString('id-ID')}
+                        </td>
+                        <td className="px-3 py-2 text-sm font-bold">
+                          {chainGrandTotal.toLocaleString('id-ID')}
+                        </td>
+                        <td></td> */}
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          
+          {/* Integrated Detail Items */}
+          <div className="space-y-4">
             {relatedTransactions.chain.map((chainItem) => {
               const isCurrentFaktur = chainItem.id === faktur.id;
               const itemDetails = isCurrentFaktur 
                 ? detailItems 
                 : (relatedTransactions.detailItems[chainItem.id] || []);
+              const isExpanded = expandedItems[chainItem.id];
+              
+              if (itemDetails.length === 0) return null;
               
               return (
-                <React.Fragment key={chainItem.id}>
-                  {/* Header untuk transaksi */}
-                  <tr className={`${isCurrentFaktur ? 'bg-blue-100' : 'bg-gray-100'} border-t-2 border-gray-300`}>
-                    <td colSpan={8} className="px-3 py-2 text-sm font-medium">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className={`inline-block px-2 py-1 mr-2 rounded text-xs font-medium ${
-                            chainItem.transactionType === "DP" ? "bg-blue-200 text-blue-800" : "bg-green-200 text-green-800"
-                          }`}>
-                            {chainItem.transactionType}
-                          </span>
-                          <span className="font-medium">{chainItem.referensi} ({new Date(chainItem.tanggal_faktur).toLocaleDateString('id-ID')})</span>
-                        </div>
-                        {!isCurrentFaktur && (
-                          <Link href={`/faktur/${chainItem.id}`} className="text-blue-600 hover:underline text-xs">
-                            Lihat detail faktur
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                <div key={chainItem.id} className="border rounded-md">
+                  {/* Transaction Header - Clickable */}
+                  <div 
+                    className={`flex justify-between items-center p-3 cursor-pointer ${
+                      isCurrentFaktur ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}
+                    onClick={() => toggleExpand(chainItem.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                        chainItem.transactionType === "DP" ? "bg-blue-200 text-blue-800" : "bg-green-200 text-green-800"
+                      }`}>
+                        {chainItem.transactionType}
+                      </span>
+                      <span className="font-medium">
+                        {chainItem.referensi} ({new Date(chainItem.tanggal_faktur).toLocaleDateString('id-ID')})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!isCurrentFaktur && (
+                        <Link 
+                          href={`/faktur/${chainItem.id}`} 
+                          className="text-blue-600 hover:underline text-xs mr-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Lihat Faktur
+                        </Link>
+                      )}
+                      {isExpanded ? (
+                        <ChevronUp size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
+                      )}
+                    </div>
+                  </div>
                   
-                  {/* Detail barang/jasa untuk transaksi ini */}
-                  {itemDetails.map((item, index) => (
-                    <tr key={`${chainItem.id}-${index}`} className={isCurrentFaktur ? "bg-blue-50" : ""}>
-                      <td className="px-3 py-2 text-sm"></td>
-                      <td className="px-3 py-2 text-sm text-gray-900"></td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{item.nama_barang_or_jasa}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{item.nama_satuan_ukur}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{item.jumlah_barang}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        {parseFloat(item.harga_satuan).toLocaleString('id-ID')}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        {parseFloat(item.dpp).toLocaleString('id-ID')}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        {parseFloat(item.ppn).toLocaleString('id-ID')}
-                      </td>
-                    </tr>
-                  ))}
-                </React.Fragment>
+                  {/* Collapsible Detail Items */}
+                  {isExpanded && (
+                    <div className="p-3">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Barang/Jasa</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Satuan</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Harga Satuan</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">DPP</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">PPN</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {itemDetails.map((item, index) => {
+                              const itemTotal = parseFloat(item.dpp) + parseFloat(item.ppn);
+                              return (
+                                <tr key={index} className={isCurrentFaktur ? "bg-blue-50/50" : ""}>
+                                  <td className="px-3 py-2 text-sm text-gray-900">{item.nama_barang_or_jasa}</td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">{item.nama_satuan_ukur}</td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">{item.jumlah_barang}</td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">
+                                    {parseFloat(item.harga_satuan).toLocaleString('id-ID')}
+                                  </td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">
+                                    {parseFloat(item.dpp).toLocaleString('id-ID')}
+                                  </td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">
+                                    {parseFloat(item.ppn).toLocaleString('id-ID')}
+                                  </td>
+                                  <td className="px-3 py-2 text-sm text-gray-900 font-medium">
+                                    {itemTotal.toLocaleString('id-ID')}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {/* Item Summary Row */}
+                            <tr className="bg-gray-50 font-medium border-t border-gray-300">
+                              <td colSpan={4} className="px-3 py-2 text-sm text-right">
+                                Subtotal:
+                              </td>
+                              <td className="px-3 py-2 text-sm">
+                                {itemDetails.reduce((sum, item) => sum + parseFloat(item.dpp), 0).toLocaleString('id-ID')}
+                              </td>
+                              <td className="px-3 py-2 text-sm">
+                                {itemDetails.reduce((sum, item) => sum + parseFloat(item.ppn), 0).toLocaleString('id-ID')}
+                              </td>
+                              <td className="px-3 py-2 text-sm font-bold">
+                                {itemDetails.reduce((sum, item) => sum + parseFloat(item.dpp) + parseFloat(item.ppn), 0).toLocaleString('id-ID')}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-      
-      
-      {relatedTransactions.chain && relatedTransactions.chain.length > 1 && (
-        <div className="border rounded-lg p-4 bg-gray-50">
-          {/* <h3 className="text-lg font-semibold mb-3">Rincian Perhitungan DP-Pelunasan</h3> */}
+          </div>
+
           
-          {/* {(() => {
-            // Identifikasi transaksi DP dan Pelunasan
-            const dpTransactions = relatedTransactions.chain.filter(item => item.transactionType === "DP");
-            const pelunasanTransactions = relatedTransactions.chain.filter(item => item.transactionType === "Pelunasan");
-            
-            // Hitung total DPP dan PPN untuk DP dan Pelunasan
-            const totalDpDpp = dpTransactions.reduce((sum, item) => sum + item.totalDPP, 0);
-            const totalDpPpn = dpTransactions.reduce((sum, item) => sum + item.totalPPN, 0);
-            const totalDpGrand = totalDpDpp + totalDpPpn;
-            
-            const totalPelunasanDpp = pelunasanTransactions.reduce((sum, item) => sum + item.totalDPP, 0);
-            const totalPelunasanPpn = pelunasanTransactions.reduce((sum, item) => sum + item.totalPPN, 0);
-            const totalPelunasanGrand = totalPelunasanDpp + totalPelunasanPpn;
-            
-            // Total nilai kontrak
-            const totalKontrakDpp = totalDpDpp + totalPelunasanDpp;
-            const totalKontrakPpn = totalDpPpn + totalPelunasanPpn;
-            const totalKontrakGrand = totalKontrakDpp + totalKontrakPpn;
-            
-            return (
-              <table className="w-full">
-                <thead className="border-b">
-                  <tr>
-                    <th className="text-left py-2">Keterangan</th>
-                    <th className="text-right py-2">DPP</th>
-                    <th className="text-right py-2">PPN</th>
-                    <th className="text-right py-2">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-2 font-medium">Nilai Total Kontrak</td>
-                    <td className="text-right py-2">{totalDpDpp.toLocaleString('id-ID')}</td>
-                    <td className="text-right py-2">{totalDpPpn.toLocaleString('id-ID')}</td>
-                    <td className="text-right py-2 font-medium">{totalDpGrand.toLocaleString('id-ID')}</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-2">Nilai Pelunasan</td>
-                    <td className="text-right py-2">{totalPelunasanDpp.toLocaleString('id-ID')}</td>
-                    <td className="text-right py-2">{totalPelunasanPpn.toLocaleString('id-ID')}</td>
-                    <td className="text-right py-2">{totalPelunasanGrand.toLocaleString('id-ID')}</td>
-                  </tr>
-                  <tr className="bg-blue-50">
-                    <td className="py-2 font-medium">Nilai DP (Selisih)</td>
-                    <td className="text-right py-2 font-medium">{(totalDpDpp - totalPelunasanDpp).toLocaleString('id-ID')}</td>
-                    <td className="text-right py-2 font-medium">{(totalDpPpn - totalPelunasanPpn).toLocaleString('id-ID')}</td>
-                    <td className="text-right py-2 font-medium">{(totalDpGrand - totalPelunasanGrand).toLocaleString('id-ID')}</td>
-                  </tr>
-                </tbody>
-              </table>
-            );
-          })()} */}
+          {/* uncomment this */}
+          {/* DP-Pelunasan Calculation Summary */}
+          {/* {relatedTransactions.chain.length > 1 && dpTotal > 0 && pelunasanTotal > 0 && (
+            <div className="mt-6 border rounded-md p-4 bg-gray-50">
+              <h3 className="text-lg font-medium mb-3">Rincian Perhitungan DP-Pelunasan</h3>
+              
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="border-b-2 border-gray-300">
+                    <tr>
+                      <th className="text-left py-2 px-3">Keterangan</th>
+                      <th className="text-right py-2 px-3">Total</th>
+                      <th className="text-right py-2 px-3">Persentase</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="py-2 px-3 font-medium">Nilai Kontrak</td>
+                      <td className="text-right py-2 px-3">{chainGrandTotal.toLocaleString('id-ID')}</td>
+                      <td className="text-right py-2 px-3">100%</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 px-3">Nilai DP</td>
+                      <td className="text-right py-2 px-3">{dpTotal.toLocaleString('id-ID')}</td>
+                      <td className="text-right py-2 px-3">
+                        {(dpTotal / chainGrandTotal * 100).toFixed(2)}%
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 px-3">Nilai Pelunasan</td>
+                      <td className="text-right py-2 px-3">{pelunasanTotal.toLocaleString('id-ID')}</td>
+                      <td className="text-right py-2 px-3">
+                        {(pelunasanTotal / chainGrandTotal * 100).toFixed(2)}%
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )} */}
         </div>
       )}
-    </>
-  )}
-</div>
+      
+
+      
+     
+      
+      {/* File Attachments Section */}
+      <div className="mb-6">
+        <FileAttachmentSection 
+          fakturId={params.id} 
+          readOnly={faktur?.status_faktur === 'APPROVED'}
+          fakturData={faktur}
+        />
+      </div>
       
       {/* Action Buttons */}
       <div className="flex justify-end space-x-3">
-        {/* <Link
-          href={`/faktur/${faktur.id}/edit`}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Edit Faktur
-        </Link> */}
         {faktur.status_faktur === 'CREATED' && (
           <button
             onClick={() => window.confirm('Anda yakin ingin menghapus faktur ini?')}

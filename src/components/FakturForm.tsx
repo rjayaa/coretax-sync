@@ -18,8 +18,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Bug, Search } from 'lucide-react';
+import { FileImage, FileText, Paperclip, Search, X } from 'lucide-react';
 import { useKodeTransaksi } from '@/hooks/use-kode-transaksi';
 import { useCapFasilitas } from '@/hooks/use-cap-fasilitas';
 import { useKeteranganTambahan } from '@/hooks/use-keterangan-tambahan';
@@ -38,7 +37,9 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
   const [errors, setErrors] = useState<Partial<Record<keyof FakturData, string>>>({});
   const [showDebug, setShowDebug] = useState(false);
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
-  
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Hook calls for dynamic data
   const { data: kodeTransaksiList = [], isLoading: isLoadingKodeTransaksi } = useKodeTransaksi();
   const { data: keteranganTambahanList = [], isLoading: isLoadingKeteranganTambahan } = useKeteranganTambahan(fakturData.kode_transaksi);
@@ -86,8 +87,8 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
     e.preventDefault();
     const validationErrors = validateFakturData(fakturData);
     
-    if (Object.keys(validationErrors).length === 0) {
-      onSubmit(fakturData);
+    if (Object.keys(validationErrors).length === 0 && fileErrors.length === 0) {
+      onSubmit(fakturData, selectedFiles.length > 0 ? selectedFiles : undefined);
     } else {
       setErrors(validationErrors);
     }
@@ -174,6 +175,52 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
     const found = capFasilitasList.find(cf => cf.kode === fakturData.cap_fasilitas);
     return found ? `${found.kode} - ${found.keterangan}` : fakturData.cap_fasilitas;
   };
+
+
+// Tambahkan handler untuk file
+const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files || e.target.files.length === 0) return;
+  
+  const newFiles = Array.from(e.target.files);
+  const errors: string[] = [];
+  const validFiles: File[] = [];
+  
+  // Validate each file
+  newFiles.forEach(file => {
+    // Check file type
+    const fileType = file.type;
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    
+    if (!validTypes.includes(fileType)) {
+      errors.push(`File "${file.name}" tidak valid. Hanya file PDF, JPG, dan PNG yang diizinkan.`);
+      return;
+    }
+    
+    // Check file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      errors.push(`File "${file.name}" terlalu besar. Ukuran maksimal adalah 10MB.`);
+      return;
+    }
+    
+    validFiles.push(file);
+  });
+  
+  setFileErrors(errors);
+  
+  if (validFiles.length > 0) {
+    setSelectedFiles(prevFiles => [...prevFiles, ...validFiles]);
+  }
+  
+  // Reset input value to allow selecting the same file again
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
+
+const removeFile = (index: number) => {
+  setSelectedFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+};
 
   return (
     <Card className="w-full">
@@ -267,18 +314,7 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
             </div>
 
             {/* Nomor Faktur Pajak dan Status Faktur */}
-            <div className="flex flex-wrap gap-3">
-              <div className="flex-1 min-w-[250px]">
-                <FormField
-                  id="nomor_faktur_pajak"
-                  label="Nomor Faktur Pajak"
-                  value={fakturData.nomor_faktur_pajak || ''}
-                  onChange={handleChange}
-                  placeholder="Masukkan nomor faktur pajak (jika ada)"
-                  readOnly={!isEdit}
-                />
-              </div>
-              
+            <div className="flex flex-wrap gap-3"> 
               {fakturData.status_faktur && (
                 <div className="flex-1 min-w-[250px]">
                   <div className="space-y-2">
@@ -502,7 +538,76 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
               </div>
             </div>
           </div>
-
+{/* File Upload Section */}
+<div className="mt-4">
+  <div className="space-y-2">
+    <Label htmlFor="fileUpload">Lampiran Dokumen (PDF, JPG, PNG - Maks. 10MB)</Label>
+    
+    <div className="flex items-center mt-2">
+      <input
+        type="file"
+        id="fileUpload"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={handleFileChange}
+        accept=".pdf,.jpg,.jpeg,.png"
+        multiple
+      />
+      <label
+        htmlFor="fileUpload"
+        className="cursor-pointer flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+      >
+        <Paperclip size={16} />
+        <span>Pilih Filess</span>
+      </label>
+    </div>
+    
+    {/* File List */}
+    {selectedFiles.length > 0 && (
+      <div className="mt-3">
+        <h4 className="text-sm font-medium mb-2">File Terpilih:</h4>
+        <ul className="space-y-2">
+          {selectedFiles.map((file, index) => {
+            const fileIcon = file.type.includes('pdf') ? 
+              <FileText size={16} className="text-red-500" /> : 
+              <FileImage size={16} className="text-blue-500" />;
+            
+            return (
+              <li key={index} className="flex items-center justify-between p-2 border rounded-md bg-gray-50">
+                <div className="flex items-center gap-2">
+                  {fileIcon}
+                  <span className="text-sm truncate max-w-xs">{file.name}</span>
+                  <span className="text-xs text-gray-500">
+                    ({(file.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="p-1 rounded-full text-red-500 hover:bg-red-50"
+                  title="Hapus file"
+                >
+                  <X size={16} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    )}
+    
+    {/* File Errors */}
+    {fileErrors.length > 0 && (
+      <div className="mt-2">
+        <ul className="list-disc list-inside text-sm text-red-500">
+          {fileErrors.map((error, index) => (
+            <li key={index}>{error}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+</div>
           <Button type="submit" className="w-full">
             {isEdit ? 'Perbarui Faktur' : 'Simpan Faktur'}
           </Button>
