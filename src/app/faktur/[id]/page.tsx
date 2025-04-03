@@ -639,7 +639,7 @@ export default function FakturDetailPage({ params }: FakturDetailProps) {
       <div className="mb-6">
         <FileAttachmentSection 
           fakturId={params.id} 
-          readOnly={faktur?.status_faktur === 'APPROVED'}
+          // readOnly={faktur?.status_faktur === 'APPROVED'}
           fakturData={faktur}
         />
       </div>
