@@ -1,4 +1,3 @@
-
 // src/lib/services/coretax-service.ts
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
@@ -12,6 +11,7 @@ export type CoretaxSyncResult = {
   synced: number;
   notFound: number;
   updated: number;
+  overwritten: number; // NEW: Menghitung jumlah faktur CREATED yang di-overwrite
   details: any[];
 };
 
@@ -26,6 +26,7 @@ export class CoretaxService {
       synced: 0,
       notFound: 0,
       updated: 0,
+      overwritten: 0, // PERBAIKAN: Inisialisasi counter untuk faktur yang di-overwrite
       details: []
     };
     
@@ -52,11 +53,50 @@ export class CoretaxService {
         'CANCELED': 'CANCELLED'
       };
       
-      // First, sort data by CreationDate to process original records before amendments
+      // Kumpulkan semua referensi dari data yang akan diproses
+      const allReferences = data.map((row: any) => row.Reference).filter(Boolean);
+      
+      // Cari semua faktur dengan status CREATED yang memiliki referensi yang sama di data
+      const createdFaktursResult = await db.select()
+        .from(faktur)
+        .where(and(
+          eq(faktur.status_faktur, 'CREATED'),
+          sql`referensi IN (${allReferences.join(',')})`,
+        ));
+      
+      // Buat mapping untuk mempercepat lookup
+      const createdFaktursByRef: Record<string, any> = {};
+      createdFaktursResult.forEach(fakturItem => {
+        if (fakturItem.referensi) {
+          if (!createdFaktursByRef[fakturItem.referensi]) {
+            createdFaktursByRef[fakturItem.referensi] = [];
+          }
+          createdFaktursByRef[fakturItem.referensi].push(fakturItem);
+        }
+      });
+      
+      // First, sort data by status to prioritize APPROVED/AMENDED over CREATED records
+      // Ini penting untuk memastikan bahwa faktur yang sudah di-approve diproses terlebih dahulu
       const sortedData = [...data].sort((a: any, b: any) => {
+        // Prioritaskan berdasarkan status
+        const statusPriority = {
+          'APPROVED': 1,
+          'AMENDED': 2,
+          'CANCELED': 3,
+          'CREATED': 4
+        };
+        
+        const priorityA = statusPriority[a.TaxInvoiceStatus] || 5;
+        const priorityB = statusPriority[b.TaxInvoiceStatus] || 5;
+        
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+        
+        // Jika status sama, urutkan berdasarkan tanggal pembuatan (terbaru lebih dulu)
         const dateA = a.CreationDate ? new Date(a.CreationDate).getTime() : 0;
         const dateB = b.CreationDate ? new Date(b.CreationDate).getTime() : 0;
-        return dateA - dateB; // Process older records first
+        return dateB - dateA;
       });
       
       // Process in batches to avoid transaction timeouts
@@ -65,7 +105,17 @@ export class CoretaxService {
         const batch = sortedData.slice(i, i + batchSize);
         // Process each row in the batch
         for (const row of batch) {
-          await this.processCoretaxRow(row, statusMapping, syncResults);
+          // Prioritaskan faktur CREATED dengan referensi yang sama jika ada
+          if (row.Reference && createdFaktursByRef[row.Reference] && createdFaktursByRef[row.Reference].length > 0) {
+            // Ambil faktur CREATED dari mapping dan hapus dari mapping
+            const createdFaktur = createdFaktursByRef[row.Reference].shift();
+            await this.updateFakturFromCoretax(createdFaktur, row, statusMapping, syncResults, true);
+            // Tandai sebagai diproses
+            syncResults.overwritten++;
+          } else {
+            // Jika tidak ada faktur CREATED dengan referensi yang sama, proses normal
+            await this.processCoretaxRow(row, statusMapping, syncResults);
+          }
         }
       }
       
@@ -232,7 +282,7 @@ export class CoretaxService {
   private static async matchAndUpdateFaktur(row: any, statusMapping: Record<string, string>, syncResults: CoretaxSyncResult): Promise<boolean> {
     // Try these strategies in order:
     // 1. Already linked faktur (by coretax_record_id)
-    // 2. Exact reference match
+    // 2. Exact reference match - prioritize CREATED status
     // 3. Partial reference match
     // 4. Invoice number match
     // 5. Buyer & seller info match with similar date
@@ -248,35 +298,24 @@ export class CoretaxService {
       return true;
     }
     
-    // 2. Try exact reference match
-    const referenceMatches = await db.select()
-      .from(faktur)
-      .where(eq(faktur.referensi, row.Reference))
-      .limit(2); // Get up to 2 to check for duplicates
-    
-    if (referenceMatches.length === 1) {
-      await this.updateFakturFromCoretax(referenceMatches[0], row, statusMapping, syncResults);
-      return true;
-    }
-    else if (referenceMatches.length > 1) {
-      // If multiple matches, try to find the one that's not already synced
-      const unsynced = referenceMatches.find(f => !f.coretax_record_id);
-      if (unsynced) {
-        await this.updateFakturFromCoretax(unsynced, row, statusMapping, syncResults);
-        return true;
-      } else {
-        // All are synced, use the one with matching status if possible
-        const matchingStatus = referenceMatches.find(f =>
-          f.status_faktur === statusMapping[row.TaxInvoiceStatus]
-        );
-        if (matchingStatus) {
-          await this.updateFakturFromCoretax(matchingStatus, row, statusMapping, syncResults);
-          return true;
-        } else {
-          // Just use the first one
-          await this.updateFakturFromCoretax(referenceMatches[0], row, statusMapping, syncResults);
+    // 2. Try exact reference match, prioritas untuk status CREATED
+    if (row.Reference) {
+      const referenceMatches = await db.select()
+        .from(faktur)
+        .where(eq(faktur.referensi, row.Reference))
+        .orderBy(sql`CASE WHEN status_faktur = 'CREATED' THEN 0 ELSE 1 END`); // Prioritaskan CREATED
+      
+      if (referenceMatches.length > 0) {
+        // Prioritaskan yang berstatus CREATED untuk di-overwrite
+        const createdFaktur = referenceMatches.find(f => f.status_faktur === 'CREATED');
+        if (createdFaktur) {
+          await this.updateFakturFromCoretax(createdFaktur, row, statusMapping, syncResults, true); // true = overwrite
           return true;
         }
+        
+        // Jika tidak ada yang CREATED, gunakan yang pertama
+        await this.updateFakturFromCoretax(referenceMatches[0], row, statusMapping, syncResults);
+        return true;
       }
     }
     
@@ -286,9 +325,17 @@ export class CoretaxService {
       const partialMatches = await db.select()
         .from(faktur)
         .where(like(faktur.referensi, `%${referenceCore}%`))
-        .limit(1);
+        .orderBy(sql`CASE WHEN status_faktur = 'CREATED' THEN 0 ELSE 1 END`); // Prioritaskan CREATED
         
       if (partialMatches.length > 0) {
+        // Prioritaskan yang berstatus CREATED
+        const createdFaktur = partialMatches.find(f => f.status_faktur === 'CREATED');
+        if (createdFaktur) {
+          await this.updateFakturFromCoretax(createdFaktur, row, statusMapping, syncResults, true); // true = overwrite
+          return true;
+        }
+        
+        // Jika tidak ada yang CREATED, gunakan yang pertama
         await this.updateFakturFromCoretax(partialMatches[0], row, statusMapping, syncResults);
         return true;
       }
@@ -330,9 +377,17 @@ export class CoretaxService {
             isNull(faktur.coretax_record_id),
             sql`tanggal_faktur BETWEEN ${dateStart.toISOString()} AND ${dateEnd.toISOString()}`
           ))
-          .limit(1);
+          .orderBy(sql`CASE WHEN status_faktur = 'CREATED' THEN 0 ELSE 1 END`); // Prioritaskan CREATED
           
         if (possibleMatches.length > 0) {
+          // Prioritaskan yang berstatus CREATED
+          const createdFaktur = possibleMatches.find(f => f.status_faktur === 'CREATED');
+          if (createdFaktur) {
+            await this.updateFakturFromCoretax(createdFaktur, row, statusMapping, syncResults, true); // true = overwrite
+            return true;
+          }
+          
+          // Jika tidak ada yang CREATED, gunakan yang pertama
           await this.updateFakturFromCoretax(possibleMatches[0], row, statusMapping, syncResults);
           return true;
         }
@@ -346,20 +401,42 @@ export class CoretaxService {
   /**
    * Update a faktur with data from Coretax
    */
-  private static async updateFakturFromCoretax(matchedFaktur: any, row: any, statusMapping: Record<string, string>, syncResults: CoretaxSyncResult) {
+  private static async updateFakturFromCoretax(
+    matchedFaktur: any, 
+    row: any, 
+    statusMapping: Record<string, string>, 
+    syncResults: CoretaxSyncResult,
+    isOverwriting: boolean = false // Flag untuk menandai apakah ini adalah overwrite dari CREATED
+  ) {
     // Check if this is a new sync or an update for this faktur
     const isNewSync = !matchedFaktur.coretax_record_id;
     
+    // PERBAIKAN: Selalu update status dari Coretax, kecuali jika status Coretax 'CANCELED'
+    // Karena 'CANCELED' perlu diubah ke 'CANCELLED' untuk sistem internal
+    const newStatus = row.TaxInvoiceStatus === 'CANCELED' 
+      ? 'CANCELLED' 
+      : statusMapping[row.TaxInvoiceStatus] || matchedFaktur.status_faktur;
+    
+    // Selalu update tanggal faktur dari Coretax
+    const tanggalFaktur = row.TaxInvoiceDate ? new Date(row.TaxInvoiceDate) : null;
+    
+    // Set data yang akan diupdate - overwrite FULL dari Coretax
+    const updateData: any = {
+      tanggal_faktur: tanggalFaktur,
+      status_faktur: newStatus,
+      coretax_record_id: row.RecordId,
+      is_uploaded_to_coretax: true,
+      last_sync_date: new Date(),
+    };
+    
+    // Hanya update nomor faktur jika tidak kosong dari Coretax
+    if (row.TaxInvoiceNumber && row.TaxInvoiceNumber.trim() !== '') {
+      updateData.nomor_faktur_pajak = row.TaxInvoiceNumber;
+    }
+    
     // Update faktur with data from Coretax
     await db.update(faktur)
-      .set({
-        tanggal_faktur: row.TaxInvoiceDate? new Date(row.TaxInvoiceDate) : null,
-        nomor_faktur_pajak: row.TaxInvoiceNumber || '',
-        status_faktur: statusMapping[row.TaxInvoiceStatus] as any,
-        coretax_record_id: row.RecordId,
-        is_uploaded_to_coretax: true,
-        last_sync_date: new Date(),
-      })
+      .set(updateData)
       .where(eq(faktur.id, matchedFaktur.id));
     
     // Update coretaxData with local faktur ID
@@ -371,7 +448,9 @@ export class CoretaxService {
     await this.updateFakturDetail(matchedFaktur.id, row);
     
     // Track the result
-    if (isNewSync) {
+    if (isOverwriting) {
+      // Sudah dihitung di fungsi utama
+    } else if (isNewSync) {
       syncResults.synced++;
     } else {
       syncResults.updated++;
@@ -379,11 +458,13 @@ export class CoretaxService {
     
     syncResults.details.push({
       reference: row.Reference,
-      status: 'synced',
+      status: isOverwriting ? 'overwritten' : 'synced',
       fakturId: matchedFaktur.id,
       coretaxRecordId: row.RecordId,
       taxInvoiceNumber: row.TaxInvoiceNumber || '(Belum Ada)',
-      taxInvoiceStatus: row.TaxInvoiceStatus
+      taxInvoiceStatus: row.TaxInvoiceStatus,
+      finalStatus: newStatus,
+      originalStatus: matchedFaktur.status_faktur
     });
     
     // If this is an amended faktur, handle the relationship
@@ -432,6 +513,8 @@ export class CoretaxService {
    * Example: "009-2/MMS-SII/II/2025" -> "MMS-SII"
    */
   private static extractReferenceCore(reference: string): string | null {
+    if (!reference) return null;
+    
     // Try the standard format first: XXX-X/YYY-ZZZ/XX/XXXX
     let match = reference.match(/\d+-\d+\/([A-Z]+-[A-Z]+)\/[A-Z]+\/\d+/);
     if (match && match[1]) {
@@ -697,15 +780,31 @@ export class CoretaxService {
         throw new Error('Faktur tidak ditemukan');
       }
       
+      // Tentukan status yang akan digunakan
+      let newStatus = 
+        coretaxRecord.tax_invoice_status === 'CANCELED' ? 'CANCELLED' : coretaxRecord.tax_invoice_status as string;
+      
+      // Set data yang akan diupdate
+      const updateData: any = {
+        status_faktur: newStatus as any,
+        coretax_record_id: coretaxRecord.record_id,
+        is_uploaded_to_coretax: true,
+        last_sync_date: new Date(),
+      };
+      
+      // Menggunakan tanggal dari Coretax jika ada
+      if (coretaxRecord.tax_invoice_date) {
+        updateData.tanggal_faktur = coretaxRecord.tax_invoice_date;
+      }
+      
+      // Hanya update nomor faktur jika tidak kosong
+      if (coretaxRecord.tax_invoice_number && coretaxRecord.tax_invoice_number.trim() !== '') {
+        updateData.nomor_faktur_pajak = coretaxRecord.tax_invoice_number;
+      }
+      
       // Update the faktur with Coretax data
       await db.update(faktur)
-        .set({
-          nomor_faktur_pajak: coretaxRecord.tax_invoice_number || '',
-          status_faktur: coretaxRecord.tax_invoice_status as any,
-          coretax_record_id: coretaxRecord.record_id,
-          is_uploaded_to_coretax: true,
-          last_sync_date: new Date(),
-        })
+        .set(updateData)
         .where(eq(faktur.id, fakturId));
       
       // Update the Coretax data with local faktur ID
@@ -720,6 +819,7 @@ export class CoretaxService {
           synced: 0,
           notFound: 0,
           updated: 0,
+          overwritten: 0,
           details: []
         });
       }
@@ -730,114 +830,112 @@ export class CoretaxService {
       throw error;
     }
   }
-  // Tambahkan ke src/lib/services/coretax-service.ts
-// Perbarui di src/lib/services/coretax-service.ts
 
-static async getRelatedTransactions(fakturId: string) {
-  try {
-    // Dapatkan faktur target
-    const targetFaktur = await db.select()
-      .from(faktur)
-      .where(eq(faktur.id, fakturId))
-      .limit(1);
-    
-    if (targetFaktur.length === 0) {
-      throw new Error('Faktur tidak ditemukan');
-    }
-    
-    const referensi = targetFaktur[0].referensi;
-    
-    // Jika tidak ada referensi, return early
-    if (!referensi) {
-      return {
-        original: targetFaktur[0],
-        related: [],
-        chain: [],
-        detailItems: {}
-      };
-    }
-    
-    // Parse referensi untuk mendapatkan bagian utama
-    const parts = this.parseReferencePattern(referensi);
-    
-    if (!parts) {
-      return {
-        original: targetFaktur[0],
-        related: [],
-        chain: [],
-        detailItems: {}
-      };
-    }
-    
-    // Cari semua faktur dengan prefix, partner, dan periode yang sama
-    const relatedFakturs = await db.select()
-      .from(faktur)
-      .where(
-        and(
-          like(faktur.referensi, `${parts.prefix}-%/${parts.partner}/${parts.period}`),
+  static async getRelatedTransactions(fakturId: string) {
+    try {
+      // Dapatkan faktur target
+      const targetFaktur = await db.select()
+        .from(faktur)
+        .where(eq(faktur.id, fakturId))
+        .limit(1);
+      
+      if (targetFaktur.length === 0) {
+        throw new Error('Faktur tidak ditemukan');
+      }
+      
+      const referensi = targetFaktur[0].referensi;
+      
+      // Jika tidak ada referensi, return early
+      if (!referensi) {
+        return {
+          original: targetFaktur[0],
+          related: [],
+          chain: [],
+          detailItems: {}
+        };
+      }
+      
+      // Parse referensi untuk mendapatkan bagian utama
+      const parts = this.parseReferencePattern(referensi);
+      
+      if (!parts) {
+        return {
+          original: targetFaktur[0],
+          related: [],
+          chain: [],
+          detailItems: {}
+        };
+      }
+      
+      // Cari semua faktur dengan prefix, partner, dan periode yang sama
+      const relatedFakturs = await db.select()
+        .from(faktur)
+        .where(
+          and(
+            like(faktur.referensi, `${parts.prefix}-%/${parts.partner}/${parts.period}`),
+          )
         )
-      )
-      .orderBy(faktur.tanggal_faktur);
-    
-    // Buat rantai transaksi
-    let chain = [...relatedFakturs];
-    
-    // Urutkan berdasarkan tipe transaksi (1 = DP, 2 = Pelunasan)
-    chain = chain.sort((a, b) => {
-      const typeA = this.parseReferencePattern(a.referensi || "")?.type || "0";
-      const typeB = this.parseReferencePattern(b.referensi || "")?.type || "0";
-      return parseInt(typeA) - parseInt(typeB);
-    });
-    
-    // Objek untuk menyimpan detail item untuk setiap transaksi
-    const detailItems: Record<string, any[]> = {};
-    
-    // Ambil informasi keuangan detail untuk setiap item dalam rantai
-    const detailedChain = await Promise.all(chain.map(async (item) => {
-      // Dapatkan detail faktur
-      const details = await db.select()
-        .from(fakturDetail)
-        .where(eq(fakturDetail.id_faktur, item.id));
+        .orderBy(faktur.tanggal_faktur);
       
-      // Simpan detail item untuk faktur ini
-      detailItems[item.id] = details;
+      // Buat rantai transaksi
+      let chain = [...relatedFakturs];
       
-      // Hitung total dengan aman
-      const totalDPP = details.reduce((sum, detail) => {
-        const dppValue = parseFloat(detail.dpp.toString());
-        return sum + (isNaN(dppValue) ? 0 : dppValue);
-      }, 0);
+      // Urutkan berdasarkan tipe transaksi (1 = DP, 2 = Pelunasan)
+      chain = chain.sort((a, b) => {
+        const typeA = this.parseReferencePattern(a.referensi || "")?.type || "0";
+        const typeB = this.parseReferencePattern(b.referensi || "")?.type || "0";
+        return parseInt(typeA) - parseInt(typeB);
+      });
       
-      const totalPPN = details.reduce((sum, detail) => {
-        const ppnValue = parseFloat(detail.ppn.toString());
-        return sum + (isNaN(ppnValue) ? 0 : ppnValue);
-      }, 0);
+      // Objek untuk menyimpan detail item untuk setiap transaksi
+      const detailItems: Record<string, any[]> = {};
       
-      // Dapatkan tipe transaksi
-      const parsedRef = this.parseReferencePattern(item.referensi || "");
-      const transactionType = parsedRef?.type === "1" ? "DP" : "Pelunasan";
+      // Ambil informasi keuangan detail untuk setiap item dalam rantai
+      const detailedChain = await Promise.all(chain.map(async (item) => {
+        // Dapatkan detail faktur
+        const details = await db.select()
+          .from(fakturDetail)
+          .where(eq(fakturDetail.id_faktur, item.id));
+        
+        // Simpan detail item untuk faktur ini
+        detailItems[item.id] = details;
+        
+        // Hitung total dengan aman
+        const totalDPP = details.reduce((sum, detail) => {
+          const dppValue = parseFloat(detail.dpp.toString());
+          return sum + (isNaN(dppValue) ? 0 : dppValue);
+        }, 0);
+        
+        const totalPPN = details.reduce((sum, detail) => {
+          const ppnValue = parseFloat(detail.ppn.toString());
+          return sum + (isNaN(ppnValue) ? 0 : ppnValue);
+        }, 0);
+        
+        // Dapatkan tipe transaksi
+        const parsedRef = this.parseReferencePattern(item.referensi || "");
+        const transactionType = parsedRef?.type === "1" ? "DP" : "Pelunasan";
+        
+        return {
+          ...item,
+          detailCount: details.length,
+          totalDPP,
+          totalPPN,
+          grandTotal: totalDPP + totalPPN,
+          transactionType
+        };
+      }));
       
       return {
-        ...item,
-        detailCount: details.length,
-        totalDPP,
-        totalPPN,
-        grandTotal: totalDPP + totalPPN,
-        transactionType
+        original: targetFaktur[0],
+        related: relatedFakturs.filter(item => item.id !== fakturId),
+        chain: detailedChain,
+        detailItems: detailItems
       };
-    }));
-    
-    return {
-      original: targetFaktur[0],
-      related: relatedFakturs.filter(item => item.id !== fakturId),
-      chain: detailedChain,
-      detailItems: detailItems
-    };
-  } catch (error) {
-    console.error('Error getting related transactions:', error);
-    throw error;
+    } catch (error) {
+      console.error('Error getting related transactions:', error);
+      throw error;
+    }
   }
-}
 
   /**
    * Helper untuk parsing format referensi

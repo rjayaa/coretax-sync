@@ -1,3 +1,4 @@
+//src/app/faktur/[id]/attachments/[attachmentId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { join } from 'path';
 import { readFile, unlink, stat } from 'fs/promises';

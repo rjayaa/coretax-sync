@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     }
     
     // Validate file type
-    if (!file.name.endsWith('.xlsx')) {
-      return NextResponse.json({ error: 'Format file harus .xlsx' }, { status: 400 });
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      return NextResponse.json({ error: 'Format file harus .xlsx atau .xls' }, { status: 400 });
     }
     
     // Read file as buffer

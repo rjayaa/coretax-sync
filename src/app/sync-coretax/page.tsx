@@ -1,7 +1,7 @@
 
 // src/app/sync-coretax/page.tsx
 'use client';
-
+import { Info } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';

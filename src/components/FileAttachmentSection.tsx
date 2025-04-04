@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Paperclip, RefreshCw, Download, Trash2, 
-  FileText, FileImage, Eye, X, FileUp 
+  FileText, FileImage, Eye, X, FileUp, Info 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 interface Attachment {
   id: string;
+  faktur_id: string;
   original_filename: string;
   filename: string;
   file_type: string;
@@ -31,6 +32,7 @@ export default function FileAttachmentSection({
 }: FileAttachmentSectionProps) {
   // Attachment list states
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [relatedAttachments, setRelatedAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -50,6 +52,10 @@ export default function FileAttachmentSection({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [previewRotation, setPreviewRotation] = useState(0);
+
+  // Determine if editing is allowed based on faktur status
+  const isEditingAllowed = fakturData && (fakturData.status_faktur === 'CREATED' || fakturData.status_faktur === 'AMENDED');
+  const finalReadOnly = readOnly || !isEditingAllowed;
   
   // Fetch attachments whenever fakturId or refreshTrigger changes
   useEffect(() => {
@@ -69,6 +75,11 @@ export default function FileAttachmentSection({
         
         const data = await response.json();
         setAttachments(data);
+
+        // If faktur is APPROVED, also fetch attachments from related fakturs
+        if (fakturData && (fakturData.status_faktur === 'APPROVED' || fakturData.status_faktur === 'AMENDED')) {
+          await fetchRelatedAttachments();
+        }
         
       } catch (err: any) {
         setError(err.message || 'Terjadi kesalahan saat mengambil data lampiran');
@@ -79,7 +90,55 @@ export default function FileAttachmentSection({
     };
     
     fetchAttachments();
-  }, [fakturId, refreshTrigger]);
+  }, [fakturId, fakturData, refreshTrigger]);
+
+  // Fetch attachments from related fakturs
+  const fetchRelatedAttachments = async () => {
+    try {
+      // Only proceed if we have a reference number
+      if (!fakturData || !fakturData.referensi) return;
+
+      const response = await fetch(`/api/faktur/${fakturId}/related`);
+      if (!response.ok) {
+        console.error('Failed to fetch related transactions');
+        return;
+      }
+
+      const relatedData = await response.json();
+      
+      // Skip if no related transactions found
+      if (!relatedData.chain || relatedData.chain.length <= 1) return;
+
+      // Collect all faktur IDs from the chain, excluding the current one
+      const relatedIds = relatedData.chain
+        .filter((item: any) => item.id !== fakturId)
+        .map((item: any) => item.id);
+
+      if (relatedIds.length === 0) return;
+      
+      // Fetch attachments for each related faktur
+      const allRelatedAttachments: Attachment[] = [];
+      
+      for (const relatedId of relatedIds) {
+        const attachResponse = await fetch(`/api/faktur/${relatedId}/attachments`);
+        if (attachResponse.ok) {
+          const attachData = await attachResponse.json();
+          // Add source faktur info to each attachment
+          const attachmentsWithSource = attachData.map((attach: Attachment) => ({
+            ...attach,
+            sourceFakturId: relatedId
+          }));
+          allRelatedAttachments.push(...attachmentsWithSource);
+        }
+      }
+      
+      // Set the related attachments
+      setRelatedAttachments(allRelatedAttachments);
+      
+    } catch (err) {
+      console.error('Error fetching related attachments:', err);
+    }
+  };
 
   // File handling functions
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,7 +242,9 @@ export default function FileAttachmentSection({
   };
   
   // Attachment action handlers
-  const handleDelete = async (attachmentId: string) => {
+  const handleDelete = async (attachmentId: string, sourceFakturId?: string) => {
+    const actualFakturId = sourceFakturId || fakturId;
+    
     const confirmDelete = window.confirm('Apakah Anda yakin ingin menghapus file ini?');
     
     if (!confirmDelete) return;
@@ -191,7 +252,7 @@ export default function FileAttachmentSection({
     try {
       setDeleting(attachmentId);
       
-      const response = await fetch(`/api/faktur/${fakturId}/attachments/${attachmentId}`, {
+      const response = await fetch(`/api/faktur/${actualFakturId}/attachments/${attachmentId}`, {
         method: 'DELETE',
       });
       
@@ -200,8 +261,13 @@ export default function FileAttachmentSection({
         throw new Error(result.error || 'Gagal menghapus file');
       }
       
-      // Remove the file from the list
-      setAttachments(attachments.filter(item => item.id !== attachmentId));
+      // Remove the file from the list (either from main or related attachments)
+      if (sourceFakturId) {
+        setRelatedAttachments(relatedAttachments.filter(item => item.id !== attachmentId));
+      } else {
+        setAttachments(attachments.filter(item => item.id !== attachmentId));
+      }
+      
       toast.success('File berhasil dihapus');
       
     } catch (err: any) {
@@ -212,11 +278,13 @@ export default function FileAttachmentSection({
     }
   };
   
-  const handleDownload = async (attachmentId: string) => {
+  const handleDownload = async (attachmentId: string, sourceFakturId?: string) => {
+    const actualFakturId = sourceFakturId || fakturId;
+    
     try {
       setDownloading(attachmentId);
       
-      const downloadUrl = `/api/faktur/${fakturId}/attachments/${attachmentId}`;
+      const downloadUrl = `/api/faktur/${actualFakturId}/attachments/${attachmentId}`;
       
       // Use fetch to check if the file is available first
       const response = await fetch(downloadUrl, { method: 'HEAD' }).catch(() => ({ ok: false }));
@@ -285,6 +353,16 @@ export default function FileAttachmentSection({
     return filename.replace(/_[a-f0-9]{8}(\.[^.]+)$/, '$1');
   };
   
+  // Combine and sort all attachments
+  const getAllAttachments = () => {
+    const allAttachments = [...attachments, ...relatedAttachments];
+    
+    // Sort by date, newest first
+    return allAttachments.sort((a, b) => {
+      return new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime();
+    });
+  };
+  
   // Render attachment list
   const renderAttachmentList = () => {
     if (loading) {
@@ -304,7 +382,9 @@ export default function FileAttachmentSection({
       );
     }
     
-    if (attachments.length === 0) {
+    const allAttachments = getAllAttachments();
+    
+    if (allAttachments.length === 0) {
       return (
         <div className="py-4 text-center text-gray-500">
           Belum ada lampiran untuk faktur ini.
@@ -321,79 +401,89 @@ export default function FileAttachmentSection({
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nama Asli</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ukuran</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Diupload</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sumber</th>
               <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {attachments.map((attachment) => (
-              <tr key={attachment.id}>
-                <td className="px-3 py-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    {getFileIcon(attachment.file_type)}
-                    <span className="truncate max-w-xs">
-                      {displayCleanFilename(attachment.filename)}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-500">
-                  {attachment.original_filename}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-500">
-                  {formatFileSize(attachment.file_size)}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-500">
-                  {formatDate(attachment.uploaded_at)}
-                </td>
-                <td className="px-3 py-2 text-sm text-right">
-                  <div className="flex items-center justify-end space-x-1">
-                    {/* Preview Button */}
-                    <Button
-                      onClick={() => handlePreview(attachment)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-green-600 hover:text-green-800"
-                      title="Lihat file"
-                    >
-                      <Eye size={16} />
-                    </Button>
-                    
-                    {/* Download Button */}
-                    <Button
-                      onClick={() => handleDownload(attachment.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-blue-600 hover:text-blue-800"
-                      disabled={downloading === attachment.id}
-                      title="Download file"
-                    >
-                      {downloading === attachment.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                      ) : (
-                        <Download size={16} />
-                      )}
-                    </Button>
-                    
-                    {/* Delete Button */}
-                    {!readOnly && (
+            {allAttachments.map((attachment) => {
+              const isFromRelated = 'sourceFakturId' in attachment;
+              const sourceFakturId = isFromRelated ? (attachment as any).sourceFakturId : null;
+              
+              return (
+                <tr key={`${attachment.id}-${sourceFakturId || 'current'}`} 
+                    className={isFromRelated ? "bg-gray-50" : ""}>
+                  <td className="px-3 py-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      {getFileIcon(attachment.file_type)}
+                      <span className="truncate max-w-xs">
+                        {displayCleanFilename(attachment.filename)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500">
+                    {attachment.original_filename}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500">
+                    {formatFileSize(attachment.file_size)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500">
+                    {formatDate(attachment.uploaded_at)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-500">
+                    {isFromRelated ? 'Faktur Terkait' : 'Faktur Ini'}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-right">
+                    <div className="flex items-center justify-end space-x-1">
+                      {/* Preview Button */}
                       <Button
-                        onClick={() => handleDelete(attachment.id)}
+                        onClick={() => handlePreview(attachment)}
                         variant="ghost"
                         size="sm"
-                        className="text-red-600 hover:text-red-800"
-                        disabled={deleting === attachment.id}
-                        title="Hapus file"
+                        className="text-green-600 hover:text-green-800"
+                        title="Lihat file"
                       >
-                        {deleting === attachment.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-700"></div>
+                        <Eye size={16} />
+                      </Button>
+                      
+                      {/* Download Button */}
+                      <Button
+                        onClick={() => handleDownload(attachment.id, sourceFakturId)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800"
+                        disabled={downloading === attachment.id}
+                        title="Download file"
+                      >
+                        {downloading === attachment.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
                         ) : (
-                          <Trash2 size={16} />
+                          <Download size={16} />
                         )}
                       </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      
+                      {/* Delete Button - Only for current faktur's attachments and if not readonly */}
+                      {!finalReadOnly && !isFromRelated && (
+                        <Button
+                          onClick={() => handleDelete(attachment.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-800"
+                          disabled={deleting === attachment.id}
+                          title="Hapus file"
+                        >
+                          {deleting === attachment.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-700"></div>
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -402,7 +492,17 @@ export default function FileAttachmentSection({
   
   // Render upload section
   const renderUploadSection = () => {
-    if (readOnly) return null;
+    if (finalReadOnly) {
+      return (
+        <div className="mb-4 p-3 bg-amber-50 rounded-md flex items-start">
+          <Info size={16} className="text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-amber-700">
+            <p className="font-medium">Status Faktur: {fakturData?.status_faktur}</p>
+            <p>Lampiran tidak dapat ditambah atau dihapus karena status faktur saat ini.</p>
+          </div>
+        </div>
+      );
+    }
     
     return (
       <div className="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
@@ -471,7 +571,7 @@ export default function FileAttachmentSection({
                     <FileImage size={16} className="text-blue-500" />;
                   
                   return (
-                    <li key={index} className="flex items-center justify-between p-2 border rounded-md bg-gray-50">
+                    <li key={index} className="flex items-center justify-between p-2 border rounded-md bg-white">
                       <div className="flex items-center gap-2">
                         {fileIcon}
                         <span className="text-sm truncate max-w-xs">{file.name}</span>
@@ -499,15 +599,25 @@ export default function FileAttachmentSection({
     );
   };
   
+  // Helper to get the correct preview URL based on attachment source
+  const getPreviewUrl = (attachment: Attachment) => {
+    const sourceFakturId = 'sourceFakturId' in attachment ? (attachment as any).sourceFakturId : null;
+    const actualFakturId = sourceFakturId || fakturId;
+    return `/api/faktur/${actualFakturId}/attachments/${attachment.id}?preview=true`;
+  };
+  
   // Preview modal component
   const PreviewModal = () => {
     if (!selectedAttachment) return null;
     
-    const previewUrl = `/api/faktur/${fakturId}/attachments/${selectedAttachment.id}?preview=true`;
+    const previewUrl = getPreviewUrl(selectedAttachment);
     
     const handlePreviewDownload = () => {
       if (!selectedAttachment) return;
-      handleDownload(selectedAttachment.id);
+      const sourceFakturId = 'sourceFakturId' in selectedAttachment 
+        ? (selectedAttachment as any).sourceFakturId 
+        : null;
+      handleDownload(selectedAttachment.id, sourceFakturId);
     };
     
     const handleZoomIn = () => {
@@ -669,9 +779,30 @@ export default function FileAttachmentSection({
           
           <div className="mt-4 text-center text-sm text-gray-500">
             <p>Nama asli: {selectedAttachment.original_filename}</p>
+            {'sourceFakturId' in selectedAttachment && (
+              <p className="mt-1">Sumber: Faktur Terkait</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+    );
+  };
+  
+  // Add an info banner about related files if applicable
+  const RelatedFilesInfoBanner = () => {
+    const showRelatedInfo = fakturData && 
+      (fakturData.status_faktur === 'APPROVED' || fakturData.status_faktur === 'AMENDED') && 
+      relatedAttachments.length > 0;
+    
+    if (!showRelatedInfo) return null;
+    
+    return (
+      <div className="mb-4 p-3 bg-blue-50 rounded-md flex items-start">
+        <Info size={16} className="text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+        <div className="text-sm text-blue-700">
+          <p>Menampilkan {relatedAttachments.length} lampiran dari transaksi terkait dengan referensi yang sama.</p>
+        </div>
+      </div>
     );
   };
   
@@ -691,6 +822,7 @@ export default function FileAttachmentSection({
       
       <CardContent>
         {renderUploadSection()}
+        <RelatedFilesInfoBanner />
         {renderAttachmentList()}
         <PreviewModal />
       </CardContent>

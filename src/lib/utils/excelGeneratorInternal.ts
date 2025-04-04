@@ -47,8 +47,8 @@ export const generateInternalRecapExcelFile = (
   // Data untuk sheet pertama
   const sheet1Data = [];
   
-  // Header baris pertama dan kedua
-  sheet1Data.push(Array(35).fill(null).map((_, index) => index + 1));
+  // Header baris pertama dan kedua - Tambah 1 kolom untuk nomor faktur
+  sheet1Data.push(Array(36).fill(null).map((_, index) => index + 1));
   sheet1Data.push([
     "Baris",
     "Tanggal Faktur",
@@ -57,6 +57,7 @@ export const generateInternalRecapExcelFile = (
     "Keterangan Tambahan",
     "Dokumen Pendukung",
     "Referensi",
+    "Nomor Faktur Pajak", // KOLOM BARU DITAMBAHKAN DI SINI
     "Cap Fasilitas",
     "ID TKU Penjual",
     "NPWP/NIK Pembeli",
@@ -90,7 +91,7 @@ export const generateInternalRecapExcelFile = (
   // Data dikelompokkan per bulan
   Object.entries(fakturByMonth).forEach(([month, monthFakturs]) => {
     // Tambahkan baris nama bulan
-    sheet1Data.push([month, ...Array(34).fill(null)]);
+    sheet1Data.push([month, ...Array(35).fill(null)]);
     
     // Tambahkan data faktur untuk bulan ini
     monthFakturs.forEach((faktur, index) => {
@@ -108,6 +109,7 @@ export const generateInternalRecapExcelFile = (
             faktur.keterangan_tambahan, // Keterangan Tambahan
             faktur.dokumen_pendukung,   // Dokumen Pendukung
             faktur.referensi,           // Referensi
+            faktur.nomor_faktur_pajak,  // Nomor Faktur Pajak (BARU)
             faktur.cap_fasilitas,       // Cap Fasilitas
             faktur.id_tku_penjual,      // ID TKU Penjual
             faktur.npwp_nik_pembeli,    // NPWP/NIK Pembeli
@@ -150,6 +152,7 @@ export const generateInternalRecapExcelFile = (
           faktur.keterangan_tambahan,   // Keterangan Tambahan
           faktur.dokumen_pendukung,     // Dokumen Pendukung
           faktur.referensi,             // Referensi
+          faktur.nomor_faktur_pajak,    // Nomor Faktur Pajak (BARU)
           faktur.cap_fasilitas,         // Cap Fasilitas
           faktur.id_tku_penjual,        // ID TKU Penjual
           faktur.npwp_nik_pembeli,      // NPWP/NIK Pembeli
@@ -164,12 +167,13 @@ export const generateInternalRecapExcelFile = (
   // =========== SHEET 2: "Rekapan FP 2025" ===========
   // Header untuk sheet kedua
   const sheet2Data = [
-    ["Rekapan Faktur 2025", ...Array(12).fill(null)],
-    Array(13).fill(null),
+    ["Rekapan Faktur 2025", ...Array(13).fill(null)],
+    Array(14).fill(null),
     [
       "Baris",
       "Tanggal Faktur",
       "Referensi",
+      "Nomor Faktur Pajak", // KOLOM BARU DITAMBAHKAN DI SINI
       "NPWP Pembeli",
       "Nama Pembeli",
       "Nama Barang/Jasa",
@@ -193,6 +197,7 @@ export const generateInternalRecapExcelFile = (
         index + 1,                     // Baris
         faktur.tanggal_faktur,         // Tanggal Faktur
         faktur.referensi,              // Referensi
+        faktur.nomor_faktur_pajak,     // Nomor Faktur Pajak (BARU)
         faktur.npwp_nik_pembeli,       // NPWP Pembeli
         faktur.nama_pembeli,           // Nama Pembeli
         detail.nama_barang_or_jasa,    // Nama Barang/Jasa
@@ -214,8 +219,8 @@ export const generateInternalRecapExcelFile = (
   const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
   
   // Set properti worksheet
-  ws1['!cols'] = Array(35).fill({ width: 15 }); // Set lebar kolom untuk sheet 1
-  ws2['!cols'] = Array(13).fill({ width: 15 }); // Set lebar kolom untuk sheet 2
+  ws1['!cols'] = Array(36).fill({ width: 15 }); // Set lebar kolom untuk sheet 1 (sesuaikan dengan jumlah kolom baru)
+  ws2['!cols'] = Array(14).fill({ width: 15 }); // Set lebar kolom untuk sheet 2 (sesuaikan dengan jumlah kolom baru)
   
   // Fungsi untuk mengatur format angka
   const setNumberFormat = (ws: XLSX.WorkSheet, startRow: number, columns: number[]) => {
@@ -233,8 +238,8 @@ export const generateInternalRecapExcelFile = (
   };
 
   // Format angka untuk kedua sheet
-  setNumberFormat(ws1, 3, [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]); // Format kolom numerik di sheet 1
-  setNumberFormat(ws2, 3, [6, 7, 8, 9, 10, 11, 12]); // Format kolom numerik di sheet 2
+  setNumberFormat(ws1, 3, [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]); // Format kolom numerik di sheet 1 (sesuaikan indeks)
+  setNumberFormat(ws2, 3, [7, 8, 9, 10, 11, 12, 13]); // Format kolom numerik di sheet 2 (sesuaikan indeks)
   
   // Tambahkan worksheet ke workbook
   XLSX.utils.book_append_sheet(wb, ws1, 'Rekapan berupa Imporan');
