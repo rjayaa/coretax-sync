@@ -4,7 +4,7 @@ import { FakturData, DetailFakturData } from '@/types/faktur';
 export const validateFakturData = (data: FakturData) => {
   const errors: Partial<Record<keyof FakturData, string>> = {};
 
-  // Validasi field wajib
+  // Enhanced validation - check all required fields
   if (!data.npwp_penjual) {
     errors.npwp_penjual = 'NPWP Penjual harus diisi';
   }
@@ -35,6 +35,27 @@ export const validateFakturData = (data: FakturData) => {
 
   if (!data.id_tku_pembeli) {
     errors.id_tku_pembeli = 'ID TKU Pembeli harus diisi';
+  }
+
+  if (!data.jenis_faktur) {
+    errors.jenis_faktur = 'Jenis Faktur harus diisi';
+  }
+
+  if (!data.jenis_id_pembeli) {
+    errors.jenis_id_pembeli = 'Jenis ID Pembeli harus diisi';
+  }
+
+  if (!data.negara_pembeli) {
+    errors.negara_pembeli = 'Negara Pembeli harus diisi';
+  }
+
+  if (!data.tipe_transaksi) {
+    errors.tipe_transaksi = 'Tipe Transaksi harus diisi';
+  }
+
+  // Add proper format validation for specific fields
+  if (data.npwp_penjual && !/^\d{15,16}$/.test(data.npwp_penjual.replace(/[.-]/g, ''))) {
+    errors.npwp_penjual = 'Format NPWP tidak valid';
   }
 
   return errors;

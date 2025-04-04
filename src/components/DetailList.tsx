@@ -50,7 +50,9 @@ export const DetailList: React.FC<DetailListProps> = ({
         <tbody className="divide-y divide-gray-200">
           {details.map((detail) => {
             const isEditing = detail.id_detail_faktur === editingId;
-            const totalHarga = parseFloat(detail.harga_satuan) * parseFloat(detail.jumlah_barang_jasa);
+            // Calculate total based on the appropriate quantity field
+            const quantity = detail.jumlah_barang_jasa || detail.jumlah_barang || detail.jumlah_jasa || '0';
+            const totalHarga = parseFloat(detail.harga_satuan) * parseFloat(quantity);
             
             return (
               <tr key={detail.id_detail_faktur} className={isEditing ? 'bg-blue-50' : ''}>
@@ -76,7 +78,7 @@ export const DetailList: React.FC<DetailListProps> = ({
                   {formatCurrency(detail.harga_satuan)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-500">
-                  {detail.jumlah_barang_jasa}
+                  {quantity}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
                   {formatCurrency(totalHarga.toString())}
@@ -124,7 +126,7 @@ export const DetailList: React.FC<DetailListProps> = ({
             </td>
             <td></td>
           </tr>
-          <tr>
+          {/* <tr>
             <td colSpan={5} className="px-4 py-3 text-sm font-medium text-right text-gray-700">
               Grand Total:
             </td>
@@ -136,7 +138,7 @@ export const DetailList: React.FC<DetailListProps> = ({
               )}
             </td>
             <td></td>
-          </tr>
+          </tr> */}
         </tfoot>
       </table>
     </div>

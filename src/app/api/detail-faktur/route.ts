@@ -65,17 +65,27 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
+    console.log('Received detail faktur data:', JSON.stringify(data, null, 2));
     
-    // Validasi data yang diperlukan
-    if (!data.id_faktur || !data.nama_satuan_ukur) {
-      return NextResponse.json(
-        { error: 'Data detail faktur tidak lengkap' },
-        { status: 400 }
-      );
+    // Validasi data yang diperlukan dengan pesan error spesifik
+    if (!data.id_faktur) {
+      return NextResponse.json({ error: 'ID Faktur tidak boleh kosong' }, { status: 400 });
+    }
+    
+    if (!data.nama_satuan_ukur) {
+      return NextResponse.json({ error: 'Nama Satuan Ukur tidak boleh kosong' }, { status: 400 });
+    }
+    
+    // Additional required field validation
+    if (!data.barang_or_jasa) {
+      return NextResponse.json({ error: 'Tipe Barang/Jasa harus dipilih' }, { status: 400 });
+    }
+    
+    if (!data.nama_barang_or_jasa) {
+      return NextResponse.json({ error: 'Nama Barang/Jasa tidak boleh kosong' }, { status: 400 });
     }
     
     // Cek apakah faktur ada
@@ -94,28 +104,59 @@ export async function POST(req: NextRequest) {
     // Generate UUID untuk detail faktur baru jika tidak ada
     const detailId = data.id_detail_faktur || uuidv4();
     
+    // Better numeric value handling with clear logs
+    console.log('Processing numeric fields for detail faktur');
+    const hargaSatuan = safeDecimal(data.harga_satuan);
+    console.log('Harga Satuan:', data.harga_satuan, '->', hargaSatuan);
+    
+    const jumlahBarang = data.barang_or_jasa === 'a' ? safeInteger(data.jumlah_barang || data.jumlah_barang_jasa, 1) : null;
+    console.log('Jumlah Barang:', data.jumlah_barang || data.jumlah_barang_jasa, '->', jumlahBarang);
+    
+    const jumlahJasa = data.barang_or_jasa === 'b' ? safeInteger(data.jumlah_jasa || data.jumlah_barang_jasa, 1) : null;
+    console.log('Jumlah Jasa:', data.jumlah_jasa || data.jumlah_barang_jasa, '->', jumlahJasa);
+    
+    const diskonPersen = safeDecimal(data.diskon_persen || data.total_diskon, 0);
+    console.log('Diskon Persen:', data.diskon_persen || data.total_diskon, '->', diskonPersen);
+    
+    const dpp = safeDecimal(data.dpp);
+    console.log('DPP:', data.dpp, '->', dpp);
+    
+    const dppNilaiLain = safeDecimal(data.dpp_nilai_lain, 0);
+    console.log('DPP Nilai Lain:', data.dpp_nilai_lain, '->', dppNilaiLain);
+    
+    const tarifPpn = safeDecimal(data.tarif_ppn, 12);
+    console.log('Tarif PPN:', data.tarif_ppn, '->', tarifPpn);
+    
+    const ppn = safeDecimal(data.ppn);
+    console.log('PPN:', data.ppn, '->', ppn);
+    
+    const tarifPpnbm = safeDecimal(data.tarif_ppnbm, 0);
+    console.log('Tarif PPnBM:', data.tarif_ppnbm, '->', tarifPpnbm);
+    
+    const ppnbm = safeDecimal(data.ppnbm, 0);
+    console.log('PPnBM:', data.ppnbm, '->', ppnbm);
+    
     // Persiapkan data untuk dimasukkan ke database
     const detailData = {
       id_detail_faktur: detailId,
       id_faktur: data.id_faktur,
-      barang_or_jasa: data.barang_or_jasa || null,
+      barang_or_jasa: data.barang_or_jasa,
       kode_barang_or_jasa: data.kode_barang_or_jasa || null,
-      nama_barang_or_jasa: data.nama_barang_or_jasa || null,
+      nama_barang_or_jasa: data.nama_barang_or_jasa,
       nama_satuan_ukur: data.nama_satuan_ukur,
-      harga_satuan: safeDecimal(data.harga_satuan),
-      // Handling jumlah barang/jasa
-      jumlah_barang: data.barang_or_jasa === 'a' ? 
-        safeInteger(data.jumlah_barang, 1) : null,
-      jumlah_jasa: data.barang_or_jasa === 'b' ? 
-        safeInteger(data.jumlah_jasa, 1) : null,
-      diskon_persen: safeDecimal(data.diskon_persen, 0),
-      dpp: safeDecimal(data.dpp),
-      dpp_nilai_lain: safeDecimal(data.dpp_nilai_lain),
-      tarif_ppn: safeDecimal(data.tarif_ppn, 12),
-      ppn: safeDecimal(data.ppn),
-      tarif_ppnbm: safeDecimal(data.tarif_ppnbm, 0),
-      ppnbm: safeDecimal(data.ppnbm, 0),
+      harga_satuan: hargaSatuan,
+      jumlah_barang: jumlahBarang,
+      jumlah_jasa: jumlahJasa,
+      diskon_persen: diskonPersen,
+      dpp: dpp,
+      dpp_nilai_lain: dppNilaiLain,
+      tarif_ppn: tarifPpn,
+      ppn: ppn,
+      tarif_ppnbm: tarifPpnbm,
+      ppnbm: ppnbm,
     };
+    
+    console.log('Inserting detail faktur:', JSON.stringify(detailData, null, 2));
     
     // Insert data ke database
     await db.insert(fakturDetail).values(detailData);

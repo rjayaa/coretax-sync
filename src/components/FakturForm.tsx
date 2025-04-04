@@ -83,16 +83,37 @@ const FakturForm = ({ initialData, isEdit, readOnlyCustomer = false, onSubmit }:
     }
   }, [capFasilitasList]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const validationErrors = validateFakturData(fakturData);
+// Add better logging and error handling
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  const validationErrors = validateFakturData(fakturData);
+  
+  if (Object.keys(validationErrors).length === 0) {
+    console.log('Submitting faktur data:', JSON.stringify(fakturData, null, 2));
     
-    if (Object.keys(validationErrors).length === 0 && fileErrors.length === 0) {
-      onSubmit(fakturData, selectedFiles.length > 0 ? selectedFiles : undefined);
-    } else {
-      setErrors(validationErrors);
+    // Ensure proper date format
+    const submissionData = {
+      ...fakturData,
+      tanggal_faktur: fakturData.tanggal_faktur, // Ensure ISO format if needed
+      tipe_transaksi: fakturData.tipe_transaksi || 'Uang Muka', // Default value with correct case
+    };
+    
+    onSubmit(submissionData, selectedFiles.length > 0 ? selectedFiles : undefined);
+  } else {
+    console.warn('Validation errors:', validationErrors);
+    setErrors(validationErrors);
+    
+    // Add this to help identify the first error field for debugging
+    const firstErrorField = Object.keys(validationErrors)[0];
+    console.warn('First error field:', firstErrorField, validationErrors[firstErrorField]);
+    
+    // Optionally scroll to the first error
+    const errorElement = document.getElementById(firstErrorField);
+    if (errorElement) {
+      errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  };
+  }
+};
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

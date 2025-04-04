@@ -1,6 +1,7 @@
 // src/constants/faktur.ts
 import { FakturData, DetailFakturData } from '@/types/faktur';
 
+// Update the initial state to match database enum values
 export const INITIAL_FAKTUR_STATE: FakturData = {
   npwp_penjual: '',
   tanggal_faktur: new Date().toISOString().split('T')[0],
@@ -19,7 +20,8 @@ export const INITIAL_FAKTUR_STATE: FakturData = {
   alamat_pembeli: '',
   id_tku_pembeli: '',
   nomor_faktur_pajak: '',
-  tipe_transaksi: 'uang_muka'
+  // Fix the case to match the database enum
+  tipe_transaksi: 'Uang Muka' // Changed from 'uang_muka' to match the enum in schema
 };
 
 export const INITIAL_DETAIL_STATE: DetailFakturData = {
@@ -28,7 +30,7 @@ export const INITIAL_DETAIL_STATE: DetailFakturData = {
   kode_barang_or_jasa: '',
   nama_barang_or_jasa: '',
   nama_satuan_ukur: '',
-  harga_satuan: '0',
+  harga_satuan: '',
   jumlah_barang_jasa: '0',
   jumlah_barang: '0',
   jumlah_jasa: '0',

@@ -148,29 +148,63 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
+    console.log('Received faktur data:', JSON.stringify(data, null, 2));
     
-    // Validasi data yang diperlukan
-    if (!data.tanggal_faktur || !data.kode_transaksi || !data.nama_pembeli ||
-        !data.alamat_pembeli || !data.npwp_nik_pembeli || !data.id_tku_penjual ||
-        !data.id_tku_pembeli) {
+    // Enhanced validation with more specific error messages
+    const requiredFields = [
+      'tanggal_faktur', 'kode_transaksi', 'nama_pembeli',
+      'alamat_pembeli', 'npwp_nik_pembeli', 'id_tku_penjual',
+      'id_tku_pembeli'
+    ];
+    
+    const missingFields = requiredFields.filter(field => !data[field]);
+    if (missingFields.length > 0) {
       return NextResponse.json(
-        { error: 'Data faktur tidak lengkap' },
+        { 
+          error: 'Data faktur tidak lengkap', 
+          missingFields: missingFields.join(', ') 
+        },
         { status: 400 }
       );
     }
     
-    // Generate UUID untuk faktur baru
+    // Generate UUID for faktur baru
     const newId = uuidv4();
     
-    // Persiapkan data untuk dimasukkan ke database
+    // Ensure date is properly parsed
+    let tanggalFaktur;
+    try {
+      tanggalFaktur = new Date(data.tanggal_faktur);
+      if (isNaN(tanggalFaktur.getTime())) {
+        throw new Error('Invalid date');
+      }
+    } catch (err) {
+      return NextResponse.json(
+        { error: 'Format tanggal faktur tidak valid' },
+        { status: 400 }
+      );
+    }
+    
+    // Ensure enum values match the schema
+    const tipeTransaksi = ['Uang Muka', 'Pelunasan'].includes(data.tipe_transaksi)
+      ? data.tipe_transaksi
+      : 'Uang Muka'; // Default with correct case
+    
+    // Ensure jenis_faktur is valid  
+    const jenisFaktur = ['Normal', 'Pengganti'].includes(data.jenis_faktur)
+      ? data.jenis_faktur
+      : 'Normal';
+    
+    // Prepare data with proper types and defaults
     const fakturData = {
       id: newId,
       npwp_penjual: data.npwp_penjual || '',
-      tanggal_faktur: new Date(data.tanggal_faktur),
-      jenis_faktur: data.jenis_faktur || 'Normal',
+      tanggal_faktur: tanggalFaktur,
+      jenis_faktur: jenisFaktur,
       kode_transaksi: data.kode_transaksi,
       keterangan_tambahan: data.keterangan_tambahan || '',
       dokumen_pendukung: data.dokumen_pendukung || '',
@@ -186,10 +220,11 @@ export async function POST(req: NextRequest) {
       id_tku_pembeli: data.id_tku_pembeli,
       nomor_faktur_pajak: data.nomor_faktur_pajak || '',
       status_faktur: 'CREATED',
-      tipe_transaksi: data.tipe_transaksi || 'Uang Muka',
-      // Kolom tambahan untuk Coretax sinkronisasi
+      tipe_transaksi: tipeTransaksi,
       is_uploaded_to_coretax: false,
     };
+    
+    console.log('Inserting faktur data:', JSON.stringify(fakturData, null, 2));
     
     // Insert data ke database
     await db.insert(faktur).values(fakturData);
